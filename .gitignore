@@ -1,3 +1,4 @@
 .env
 .air.toml
-temp/
+tmp/
+.vscode/
