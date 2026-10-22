@@ -1,22 +1,28 @@
 package router
 
-import "github.com/gin-gonic/gin"
+import (
+	"agrawalManas/Valet/internal/config"
+	"agrawalManas/Valet/internal/handler"
 
-func Initialize(port string) {
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+func Initialize(cfg *config.Config, pool *pgxpool.Pool) {
 	println("Initializing router")
 
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
-	setupApiRoutes(router)
+	setupApiRoutes(router, pool, cfg)
 	println("Router Initialized")
 
-	router.Run("localhost:" + port)
+	router.Run("localhost:" + cfg.PORT)
 }
 
-func setupApiRoutes(router *gin.Engine) {
+func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config) {
 	authApi := router.Group("/api/auth")
 	{
-		authApi.POST("/get-otp")
-		authApi.POST("login")
+		authApi.GET("/get-otp", handler.GenerateOTPHandler(pool))
+		authApi.POST("/verify-otp", handler.VerifyOTPHandler(pool, cfg))
 	}
 }
