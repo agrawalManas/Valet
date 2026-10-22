@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS users(
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    full_name VARCHAR(255),
+    email VARCHAR(255),
+    mobile_number VARCHAR(10) NOT NULL UNIQUE,
+    role VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);

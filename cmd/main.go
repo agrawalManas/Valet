@@ -30,6 +30,5 @@ func main() {
 	if cfg.PORT == "" {
 		log.Fatal("Not a valid port number " + cfg.PORT)
 	}
-	router.Initialize(cfg.PORT)
-
+	router.Initialize(cfg, pool)
 }
