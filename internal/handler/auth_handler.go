@@ -32,8 +32,7 @@ func VerifyOTPHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var request *dto.VerifyOTPRequest
 
-		err := ctx.BindJSON(&request)
-
+		err := ctx.ShouldBindJSON(&request)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(err.Error()))
 			return
@@ -51,7 +50,7 @@ func VerifyOTPHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 				ctx.JSON(http.StatusInternalServerError, CustomUtils.HandleErrorResponse(err.Error()))
 				return
 			} else {
-				user, err = repository.CreateUser(pool, mobileNumber)
+				user, err = repository.CreateUser(pool, mobileNumber, request.Role)
 				if err != nil {
 					ctx.JSON(http.StatusInternalServerError, CustomUtils.HandleErrorResponse(err.Error()))
 					return
