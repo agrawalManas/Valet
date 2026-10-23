@@ -67,16 +67,20 @@ func GetUserByMobile(pool *pgxpool.Pool, mobileNumber string) (*models.User, err
 	return &user, nil
 }
 
-func UpdateUser(pool *pgxpool.Pool, fullName string, email string, role string, id string) (*models.User, error) {
+func UpdateUser(pool *pgxpool.Pool, fullName *string, email *string, role *string, id string) (*models.User, error) {
 	var ctx context.Context
 	var cancel context.CancelFunc
 
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := ` UPDATE users SET full_name = $1, email = $2, role = $3, updated_at = CURRENT_TIME_STAMP
+	query := ` UPDATE users 
+			   SET full_name = COALESCE($1, full_name),
+			   	   email = COALESCE($2, email),
+			       role = COALESCE($3, role),
+			       updated_at = CURRENT_TIMESTAMP
 			   WHERE id = $4
-			   RETURNING id, full_name, email, mobile_number, role, create_at, updated_at
+			   RETURNING id, full_name, email, mobile_number, role, created_at, updated_at
 	`
 	var user models.User
 
@@ -85,6 +89,7 @@ func UpdateUser(pool *pgxpool.Pool, fullName string, email string, role string, 
 		&user.FullName,
 		&user.Email,
 		&user.MobileNumber,
+		&user.Role,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)

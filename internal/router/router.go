@@ -3,6 +3,7 @@ package router
 import (
 	"agrawalManas/Valet/internal/config"
 	"agrawalManas/Valet/internal/handler"
+	"agrawalManas/Valet/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,5 +25,11 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config) 
 	{
 		authApi.GET("/get-otp", handler.GenerateOTPHandler(pool))
 		authApi.POST("/verify-otp", handler.VerifyOTPHandler(pool, cfg))
+	}
+
+	userApi := router.Group("api/user")
+	userApi.Use(middleware.AuthMiddleware(pool, cfg))
+	{
+		userApi.PATCH("/update", handler.UpdateUserHandler(pool))
 	}
 }
