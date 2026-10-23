@@ -8,21 +8,21 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func CreateUser(pool *pgxpool.Pool, mobileNumber string) (*models.User, error) {
+func CreateUser(pool *pgxpool.Pool, mobileNumber string, role *string) (*models.User, error) {
 	var ctx context.Context
 	var cancel context.CancelFunc
 
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var query = ` INSERT INTO users(mobile_number)
-				  VALUES ($1)
+	var query = ` INSERT INTO users(mobile_number, role)
+				  VALUES ($1, $2)
 				  RETURNING id, full_name, email, mobile_number, role, created_at, updated_at
 	`
 
 	var createdUser models.User
 
-	err := pool.QueryRow(ctx, query, mobileNumber).Scan(
+	err := pool.QueryRow(ctx, query, mobileNumber, role).Scan(
 		&createdUser.Id,
 		&createdUser.FullName,
 		&createdUser.Email,
