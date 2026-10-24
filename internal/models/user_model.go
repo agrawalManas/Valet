@@ -7,7 +7,8 @@ type User struct {
 	FullName     *string   `json:"full_name"`
 	Email        *string   `json:"email"`
 	MobileNumber string    `json:"mobile_number" binding:"required"`
-	Role         *string   `json:"role"`
+	Role         *string   `json:"-"`
+	IsActive     bool      `json:"is_active"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
