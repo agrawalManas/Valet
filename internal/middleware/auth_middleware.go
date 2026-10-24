@@ -19,14 +19,14 @@ func AuthMiddleware(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 		header := ctx.GetHeader("Authorization")
 
 		if header == "" {
-			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(constants.NO_AUTH_HEADER))
+			ctx.JSON(http.StatusUnauthorized, CustomUtils.HandleErrorResponse(constants.NO_AUTH_HEADER))
 			ctx.Abort()
 			return
 		}
 
 		trimmedHeader := strings.TrimPrefix(header, "Bearer ")
 		if trimmedHeader == "" || trimmedHeader == header {
-			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(constants.MALFORMED_TOKEN))
+			ctx.JSON(http.StatusUnauthorized, CustomUtils.HandleErrorResponse(constants.MALFORMED_TOKEN))
 			ctx.Abort()
 			return
 		}
@@ -38,28 +38,42 @@ func AuthMiddleware(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 			return []byte(cfg.JWTSecret), nil
 		})
 		if err != nil {
-			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(err.Error()))
+			ctx.JSON(http.StatusUnauthorized, CustomUtils.HandleErrorResponse(err.Error()))
 			ctx.Abort()
 			return
 		}
 
 		tokenClaims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(constants.NO_TOKEN_CLAIMS_FOUND))
+			ctx.JSON(http.StatusUnauthorized, CustomUtils.HandleErrorResponse(constants.NO_TOKEN_CLAIMS_FOUND))
 			ctx.Abort()
 			return
 		}
 
-		userId, ok := tokenClaims["user_id"].(string)
+		userId, ok := tokenClaims[constants.CLAIM_USER_ID].(string)
 		if !ok {
-			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(constants.INVALID_TOKEN_CLAIM+"[user_id]"))
+			ctx.JSON(http.StatusUnauthorized, CustomUtils.HandleErrorResponse(constants.INVALID_TOKEN_CLAIM+"[user_id]"))
+			ctx.Abort()
+			return
+		}
+
+		userRole, ok := tokenClaims[constants.CLAIM_USER_ROLE].(string)
+		if !ok {
+			ctx.JSON(http.StatusUnauthorized, CustomUtils.HandleErrorResponse(constants.INVALID_TOKEN_CLAIM+"[user_role]"))
+			ctx.Abort()
+			return
+		}
+
+		isActive, ok := tokenClaims[constants.CLAIM_IS_ACTIVE].(bool)
+		if !ok {
+			ctx.JSON(http.StatusUnauthorized, CustomUtils.HandleErrorResponse(constants.INVALID_TOKEN_CLAIM+"[is_active]"))
 			ctx.Abort()
 			return
 		}
 
 		exp, ok := tokenClaims["exp"].(float64)
 		if !ok {
-			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(constants.INVALID_TOKEN_CLAIM+"[exp]"))
+			ctx.JSON(http.StatusUnauthorized, CustomUtils.HandleErrorResponse(constants.INVALID_TOKEN_CLAIM+"[exp]"))
 			ctx.Abort()
 			return
 		}
@@ -71,7 +85,9 @@ func AuthMiddleware(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set("user_id", userId)
+		// ctx.Set(constants.CTX_USER_ID, userId)
+		// ctx.Set(constants.CTX_USER_ROLE, userRole)
+		ctx.Set(constants.CTX_AUTH_USER, AuthUser{ID: userId, Role: userRole, IsActive: isActive})
 		ctx.Next()
 	}
 }

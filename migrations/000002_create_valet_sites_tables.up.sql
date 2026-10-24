@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS sites(
     supervisor_mobile_number VARCHAR(255) NOT NULL,
     supervisor_dob VARCHAR(255) NOT NULL,
     supervisor_gender VARCHAR(255) NOT NULL,
-    poc_name VARCHAR (255) NOT NULL,
+    supervisor_name VARCHAR (255) NOT NULL,
     site_images VARCHAR[],
     site_opening_time TIMESTAMPTZ NOT NULL,
     site_closing_time TIMESTAMPTZ NOT NULL,

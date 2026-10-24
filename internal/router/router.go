@@ -34,6 +34,12 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config) 
 	userApi := router.Group("api/user")
 	userApi.Use(middleware.AuthMiddleware(pool, cfg))
 	{
-		userApi.PATCH("/update", handler.UpdateUserHandler(pool))
+		userApi.PATCH("/update-profile", handler.UpdateProfileHandler(pool))
+	}
+
+	adminApi := router.Group("api/admin")
+	adminApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_ADMIN))
+	{
+		adminApi.PATCH("/user-access", handler.AdminUpdateUserHandler(pool))
 	}
 }

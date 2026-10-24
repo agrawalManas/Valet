@@ -59,11 +59,16 @@ func VerifyOTPHandler(pool *pgxpool.Pool, cfg *config.Config, role string) gin.H
 		}
 
 		if *user.Role != role {
-			ctx.JSON(http.StatusForbidden, CustomUtils.HandleErrorResponse("Cannot login with the "+role+" role with this mobile number"))
+			ctx.JSON(http.StatusForbidden, CustomUtils.HandleErrorResponse("Cannot login as "+role+" role with this mobile number"))
 			return
 		}
 
-		token, err := CustomUtils.NewJWT(role, user.Id, cfg)
+		if !user.IsActive {
+			ctx.JSON(http.StatusForbidden, CustomUtils.HandleErrorResponse(constants.USER_INACTIVE))
+			return
+		}
+
+		token, err := CustomUtils.NewJWT(*user.Role, user.Id, user.IsActive, cfg)
 		if err != nil || token == "" {
 			ctx.JSON(http.StatusInternalServerError, CustomUtils.HandleErrorResponse(constants.FAILED_TO_GENERATE_TOKEN+"for user with number: "+mobileNumber))
 			return
