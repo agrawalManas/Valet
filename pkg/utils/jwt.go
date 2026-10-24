@@ -7,11 +7,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func NewJWT(mobileNumber string, userId string, config *config.Config) (string, error) {
+func NewJWT(role string, userId string, config *config.Config) (string, error) {
 	claims := jwt.MapClaims{
-		"user_id":       userId,
-		"mobile_number": mobileNumber,
-		"exp":           time.Now().Add(24 * time.Hour).Unix(),
+		"user_id":   userId,
+		"user_role": role,
+		"exp":       time.Now().Add(24 * time.Hour).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

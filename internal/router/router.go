@@ -2,6 +2,7 @@ package router
 
 import (
 	"agrawalManas/Valet/internal/config"
+	"agrawalManas/Valet/internal/constants"
 	"agrawalManas/Valet/internal/handler"
 	"agrawalManas/Valet/internal/middleware"
 
@@ -24,7 +25,10 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config) 
 	authApi := router.Group("/api/auth")
 	{
 		authApi.GET("/get-otp", handler.GenerateOTPHandler(pool))
-		authApi.POST("/verify-otp", handler.VerifyOTPHandler(pool, cfg))
+		authApi.POST("/customer/verify-otp", handler.VerifyOTPHandler(pool, cfg, constants.ROLE_CUSTOMER))
+		authApi.POST("/supervisor/verify-otp", handler.VerifyOTPHandler(pool, cfg, constants.ROLE_SUPERVISOR))
+		authApi.POST("/driver/verify-otp", handler.VerifyOTPHandler(pool, cfg, constants.ROLE_DRIVER))
+		authApi.POST("/admin/verify-otp", handler.VerifyOTPHandler(pool, cfg, constants.ROLE_ADMIN))
 	}
 
 	userApi := router.Group("api/user")

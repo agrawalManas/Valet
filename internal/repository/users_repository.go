@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func CreateUser(pool *pgxpool.Pool, mobileNumber string, role *string) (*models.User, error) {
+func CreateUser(pool *pgxpool.Pool, mobileNumber string, role string) (*models.User, error) {
 	var ctx context.Context
 	var cancel context.CancelFunc
 

@@ -28,7 +28,7 @@ func GenerateOTPHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	}
 }
 
-func VerifyOTPHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
+func VerifyOTPHandler(pool *pgxpool.Pool, cfg *config.Config, role string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var request *dto.VerifyOTPRequest
 
@@ -50,7 +50,7 @@ func VerifyOTPHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 				ctx.JSON(http.StatusInternalServerError, CustomUtils.HandleErrorResponse(err.Error()))
 				return
 			} else {
-				user, err = repository.CreateUser(pool, mobileNumber, request.Role)
+				user, err = repository.CreateUser(pool, mobileNumber, role)
 				if err != nil {
 					ctx.JSON(http.StatusInternalServerError, CustomUtils.HandleErrorResponse(err.Error()))
 					return
@@ -58,7 +58,12 @@ func VerifyOTPHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 			}
 		}
 
-		token, err := CustomUtils.NewJWT(mobileNumber, user.Id, cfg)
+		if *user.Role != role {
+			ctx.JSON(http.StatusForbidden, CustomUtils.HandleErrorResponse("Cannot login with the "+role+" role with this mobile number"))
+			return
+		}
+
+		token, err := CustomUtils.NewJWT(role, user.Id, cfg)
 		if err != nil || token == "" {
 			ctx.JSON(http.StatusInternalServerError, CustomUtils.HandleErrorResponse(constants.FAILED_TO_GENERATE_TOKEN+"for user with number: "+mobileNumber))
 			return
