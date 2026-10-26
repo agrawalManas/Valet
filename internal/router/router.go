@@ -16,7 +16,6 @@ func Initialize(cfg *config.Config, pool *pgxpool.Pool) {
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
 	setupApiRoutes(router, pool, cfg)
-	println("Router Initialized")
 
 	router.Run("localhost:" + cfg.PORT)
 }
@@ -41,5 +40,6 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config) 
 	adminApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_ADMIN))
 	{
 		adminApi.PATCH("/user-access", handler.AdminUpdateUserHandler(pool))
+		adminApi.POST("/add-site", handler.AddValetSiteHandler(pool))
 	}
 }
