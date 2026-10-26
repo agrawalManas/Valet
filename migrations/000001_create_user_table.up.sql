@@ -3,8 +3,10 @@ CREATE TABLE IF NOT EXISTS users(
     full_name VARCHAR(255),
     email VARCHAR(255),
     mobile_number VARCHAR(10) NOT NULL UNIQUE,
-    role VARCHAR(255) CHECK (role IN ('CUSTOMER', 'SUPERVISOR', 'DRIVER', 'ADMIN')),
+    role VARCHAR(255) NOT NULL CHECK (role IN ('CUSTOMER', 'SUPERVISOR', 'DRIVER', 'ADMIN')),
     is_active BOOLEAN DEFAULT true,
+    dob DATE,
+    gender VARCHAR(10) CHECK (gender IN ('MALE', 'FEMALE', 'OTHER')),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );

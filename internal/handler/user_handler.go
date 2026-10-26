@@ -26,7 +26,7 @@ func UpdateProfileHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		updated, err := repository.UpdateUser(pool, user.ID, req.FullName, req.Email)
+		updated, err := repository.UpdateUser(pool, user.ID, req.FullName, req.Email, req.Dob, req.Gender)
 		if err != nil {
 			CustomUtils.RespondRepoError(ctx, err)
 			return
