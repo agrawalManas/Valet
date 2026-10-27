@@ -65,3 +65,30 @@ func (r *AddSiteRequest) Validate() error {
 
 	return nil
 }
+
+type GetSiteRequest struct {
+	CreatedBy    *string `form:"created_by"    json:"created_by"    binding:"omitempty"`
+	SupervisorId *string `form:"supervisor_id" json:"supervisor_id" binding:"omitempty"`
+	ShowAll      *bool   `form:"show_all"      json:"show_all"`
+}
+
+func (r *GetSiteRequest) Validate() error {
+	selected := 0
+	if r.CreatedBy != nil {
+		selected++
+	}
+	if r.SupervisorId != nil {
+		selected++
+	}
+	if r.ShowAll != nil && *r.ShowAll { // show_all=false does not count as a filter
+		selected++
+	}
+
+	switch {
+	case selected == 0:
+		return errors.New("provide exactly one of created_by, supervisor_id or show_all=true")
+	case selected > 1:
+		return errors.New("only one of created_by, supervisor_id or show_all can be provided at a time")
+	}
+	return nil
+}
