@@ -22,7 +22,7 @@ func UpdateProfileHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 		if req.IsEmpty() {
-			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(constants.REQUEST_BODY_MISSING))
+			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(constants.INVALID_REQUEST_BODY))
 			return
 		}
 
@@ -46,7 +46,7 @@ func AdminUpdateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 		if req.IsValid() {
-			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(constants.REQUEST_BODY_MISSING))
+			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(constants.INVALID_REQUEST_BODY))
 			return
 		}
 

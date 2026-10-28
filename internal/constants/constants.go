@@ -49,7 +49,7 @@ const (
 // -----------------Error-Message
 const (
 	SOMETHING_WENT_WRONG = "Oops, Something went wrong"
-	REQUEST_BODY_MISSING = "Provide a valid request body"
+	INVALID_REQUEST_BODY = "Provide a valid request body"
 	INVALID_USER_ID      = "Provide valid user id"
 	USER_NOT_FOUND       = "User not found"
 	UNAUTHORIZED         = "Unauthorized"

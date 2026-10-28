@@ -36,7 +36,6 @@ func invalid(msg string) error { return &ValidationError{Msg: msg} }
 //  3. insert the site pointing at that user
 //
 // If any step fails, nothing is written: no orphan user, no half-created site.
-// The caller must have bound the JSON and called req.Validate() already.
 
 func CreateSite(ctx context.Context, pool *pgxpool.Pool, adminID string, req dto.AddSiteRequest) (*models.Site, error) {
 	dob, err := validateSiteRequest(req)
