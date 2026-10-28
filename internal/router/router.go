@@ -42,5 +42,6 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config) 
 		adminApi.PATCH("/user-access", handler.AdminUpdateUserHandler(pool))
 		adminApi.POST("/add-site", handler.AddValetSiteHandler(pool))
 		adminApi.GET("/get-sites", handler.GetValetSitesHandler(pool))
+		adminApi.PATCH("/update-site/:id", handler.UpdateSiteHandler(pool))
 	}
 }
