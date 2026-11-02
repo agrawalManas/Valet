@@ -56,3 +56,15 @@ const (
 	FORBIDDEN            = "Forbidden"
 	TOKEN_EXPIRED        = "Token Expired"
 )
+
+// --------------File-Related-Constants
+const (
+	FILE_VISIBILITY_PRIVATE      = "PRIVATE"
+	FILE_VISIBILITY_PUBLIC       = "PUBLIC"
+	TOTAL_FILE_SIZE_LIMIT_EXCEED = "Total file upload limit is 50MB/request"
+	FILE_LENGTH_EXCEED           = "Total no. of files in a request should be less than 10"
+	REQUIRE_AT_LEAST_ONE_FILE    = "Please add at least one file to upload"
+	INVALID_FORM_DATA            = "Invalid form data"
+	FILE_KIND_IMAGE              = "IMAGE"
+	FILE_KIND_FILE               = "FILE"
+)
