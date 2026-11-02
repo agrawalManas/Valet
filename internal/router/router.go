@@ -5,22 +5,22 @@ import (
 	"agrawalManas/Valet/internal/constants"
 	"agrawalManas/Valet/internal/handler"
 	"agrawalManas/Valet/internal/middleware"
+	"agrawalManas/Valet/internal/storage"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Initialize(cfg *config.Config, pool *pgxpool.Pool) {
-	println("Initializing router")
+func Initialize(cfg *config.Config, pool *pgxpool.Pool, r2Client *storage.R2Client) {
 
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
-	setupApiRoutes(router, pool, cfg)
+	setupApiRoutes(router, pool, cfg, r2Client)
 
 	router.Run("localhost:" + cfg.PORT)
 }
 
-func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config) {
+func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config, r2Client *storage.R2Client) {
 	authApi := router.Group("/api/auth")
 	{
 		authApi.GET("/get-otp", handler.GenerateOTPHandler(pool))
@@ -43,5 +43,11 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config) 
 		adminApi.POST("/add-site", handler.AddValetSiteHandler(pool))
 		adminApi.GET("/get-sites", handler.GetValetSitesHandler(pool))
 		adminApi.PATCH("/update-site/:id", handler.UpdateSiteHandler(pool))
+	}
+
+	filesApi := router.Group("api/files")
+	filesApi.Use(middleware.AuthMiddleware(pool, cfg))
+	{
+		filesApi.POST("/upload", handler.FileUploadHandler(pool, r2Client))
 	}
 }

@@ -1,5 +1,12 @@
 package CustomUtils
 
+import (
+	"path/filepath"
+	"strings"
+
+	"github.com/google/uuid"
+)
+
 // Generic helper that safely dereferences a pointer
 func Deref[T any](p *T) T {
 	var zero T
@@ -7,4 +14,34 @@ func Deref[T any](p *T) T {
 		return zero
 	}
 	return *p
+}
+
+func DerefSlice[T any](items []*T) []T {
+	result := make([]T, 0, len(items))
+
+	for _, item := range items {
+		if item != nil {
+			result = append(result, *item)
+		}
+	}
+
+	return result
+}
+
+func GenerateObjectKey(
+	visibility string,
+	kind string,
+	extension string,
+) string {
+	folder := strings.ToLower(visibility) + "/"
+
+	if kind == "IMAGE" {
+		folder += "images/"
+	} else {
+		folder += "documents/"
+	}
+
+	extension = strings.ToLower(filepath.Ext(extension))
+
+	return folder + uuid.NewString() + extension
 }
