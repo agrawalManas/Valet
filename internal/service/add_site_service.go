@@ -16,18 +16,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const dobLayout = "2006-01-02"
-
 var (
-	ErrSupervisorRoleConflict = errors.New("this mobile number already belongs to a user who is not a supervisor")
-	ErrSupervisorInactive     = errors.New("this supervisor account is deactivated")
+	ErrSupervisorRoleConflict = errors.New("This mobile number already belongs to a user who is not a supervisor")
+	ErrSupervisorInactive     = errors.New("This supervisor account is deactivated")
 )
 
-type ValidationError struct{ Msg string }
+type ValidationError = CustomUtils.ValidationError
 
-func (e *ValidationError) Error() string { return e.Msg }
-
-func invalid(msg string) error { return &ValidationError{Msg: msg} }
+func invalid(msg string) error { return CustomUtils.Invalid(msg) }
 
 // CreateSite runs the whole flow in a single transaction:
 //
@@ -115,7 +111,7 @@ func resolveSupervisor(ctx context.Context, tx pgx.Tx, in dto.SupervisorInput, d
 // the database CHECK constraints would otherwise reject with a 500.
 // It returns the parsed date of birth.
 func validateSiteRequest(req dto.AddSiteRequest) (time.Time, error) {
-	dob, err := time.Parse(dobLayout, req.SupervisorDetails.Dob)
+	dob, err := time.Parse(constants.DOBLayout, req.SupervisorDetails.Dob)
 	if err != nil {
 		return time.Time{}, invalid("supervisor_dob must be a valid date in YYYY-MM-DD format")
 	}

@@ -1,1 +1,1 @@
-DELETE TABLE IF EXISTS driver_reviews;
+DROP TABLE IF EXISTS driver_reviews;

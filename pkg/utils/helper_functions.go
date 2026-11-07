@@ -45,3 +45,12 @@ func GenerateObjectKey(
 
 	return folder + uuid.NewString() + extension
 }
+
+// Helper function for getting prefixed column names for join operations in sql queries
+func PrefixColumns(alias, cols string) string {
+	parts := strings.Split(cols, ",")
+	for i, p := range parts {
+		parts[i] = alias + "." + strings.TrimSpace(p)
+	}
+	return strings.Join(parts, ", ")
+}

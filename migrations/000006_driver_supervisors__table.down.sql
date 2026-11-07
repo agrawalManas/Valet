@@ -1,1 +1,1 @@
-DELETE TABLE IF EXISTS driver_supervisors;
+DROP TABLE IF EXISTS driver_supervisors;

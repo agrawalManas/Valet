@@ -20,7 +20,6 @@ const siteColumns = `site_name, is_booking_allowed, parking_type, total_capacity
 			created_by`
 
 func scanSite(row pgx.Row) (*models.Site, error) {
-	print("in the scanSite method")
 	var s models.Site
 	var insurancePrice *float64
 	var tippingAmounts []float64
@@ -36,7 +35,6 @@ func scanSite(row pgx.Row) (*models.Site, error) {
 		&s.TippingAllowed, &tippingAmounts, &pickTipping, &dropTipping,
 		&s.CreatedBy, &s.CreatedAt, &s.UpdatedAt)
 	if err != nil {
-		print("error is: ", err.Error())
 		return nil, err
 	}
 

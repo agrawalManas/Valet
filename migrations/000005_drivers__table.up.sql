@@ -46,7 +46,7 @@ CREATE TABLE drivers(
             )
         ),
 
-    -- Driving experience in completed years
+    -- Driving experience in years
     driving_experience_years SMALLINT NOT NULL CHECK (driving_experience_years >= 0),
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

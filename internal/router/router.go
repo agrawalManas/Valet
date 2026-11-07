@@ -43,6 +43,9 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config, 
 		adminApi.POST("/add-site", handler.AddValetSiteHandler(pool))
 		adminApi.GET("/get-sites", handler.GetValetSitesHandler(pool))
 		adminApi.PATCH("/update-site/:id", handler.UpdateSiteHandler(pool))
+		adminApi.PATCH("/change-supervisor-for-driver", handler.ChangeSupervisorForDriverHandler(pool))
+		//TODO
+		adminApi.PATCH("/mark_user_inactive", handler.AdminUpdateUserHandler(pool))
 	}
 
 	filesApi := router.Group("api/files")
@@ -50,4 +53,24 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config, 
 	{
 		filesApi.POST("/upload", handler.FileUploadHandler(pool, r2Client))
 	}
+
+	supervisorApi := router.Group("/api/supervisor")
+	supervisorApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_SUPERVISOR))
+	{
+		supervisorApi.POST("/add-driver-to-site", handler.AddDriverToSiteHandler(pool))
+		supervisorApi.PATCH("/update-driver-info", handler.UpdateSiteDriverHandler(pool))
+	}
+
+	adminSupervisorCommonApi := router.Group("api/site")
+	adminSupervisorCommonApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_SUPERVISOR, constants.ROLE_ADMIN))
+	{
+		adminSupervisorCommonApi.GET("/drivers-by-supervisor", handler.GetAllDriversForSiteHandler(pool, false))
+		adminSupervisorCommonApi.GET("/drivers-by-site/:id", handler.GetAllDriversForSiteHandler(pool, true))
+	}
+
+	// customerSupervisorCommonApi := router.Group("api/review")
+	// customerSupervisorCommonApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_SUPERVISOR, constants.ROLE_CUSTOMER))
+	// {
+	// 	customerSupervisorCommonApi.POST("/driver-review", handler.AdminUpdateUserHandler(pool))
+	// }
 }

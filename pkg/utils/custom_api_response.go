@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"runtime"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -35,10 +36,28 @@ func HandleSuccessResponse(data any) successResponse {
 }
 
 func RespondRepoError(ctx *gin.Context, err error) {
+	var verr *ValidationError
+	if errors.As(err, &verr) {
+		ctx.JSON(http.StatusBadRequest, HandleErrorResponse(verr.Msg))
+		return
+	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		ctx.JSON(http.StatusNotFound, HandleErrorResponse(constants.USER_NOT_FOUND))
 		return
 	}
-	log.Printf("%s %s: %v", ctx.Request.Method, ctx.FullPath(), err)
+	log.Printf("%s %s %s: %v", ctx.Request.Method, ctx.FullPath(), getParentFunctionName(), err)
 	ctx.JSON(http.StatusInternalServerError, HandleErrorResponse(constants.SOMETHING_WENT_WRONG))
+}
+
+func getParentFunctionName() string {
+	// Skip 1 frame to get the caller of the current function
+	pc, _, _, ok := runtime.Caller(2)
+	if !ok {
+		return "unknown method"
+	}
+	fn := runtime.FuncForPC(pc)
+	if fn == nil {
+		return "unknown function"
+	}
+	return fn.Name()
 }

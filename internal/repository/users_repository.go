@@ -1,21 +1,25 @@
+/// SELECT * directly selects the raw columns without any conversion
+
 package repository
 
 import (
 	"agrawalManas/Valet/internal/database"
 	"agrawalManas/Valet/internal/models"
+	CustomUtils "agrawalManas/Valet/pkg/utils"
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const userColumns = `id::text, full_name, email, mobile_number, role, is_active, gender, dob::text, created_at, updated_at`
+const userColumns = `id::text, full_name, email, mobile_number, role, is_active, dob::text, gender, created_at, updated_at`
+
+var userJoinColumns string = CustomUtils.PrefixColumns("u", userColumns)
 
 func scanUser(row pgx.Row) (*models.User, error) {
 	var u models.User
-	err := row.Scan(&u.Id, &u.FullName, &u.Email, &u.MobileNumber, &u.Role, &u.IsActive, &u.Gender, &u.Dob, &u.CreatedAt, &u.UpdatedAt)
+	err := row.Scan(&u.Id, &u.FullName, &u.Email, &u.MobileNumber, &u.Role, &u.IsActive, &u.Dob, &u.Gender, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +48,36 @@ func GetUserByMobile(pool *pgxpool.Pool, mobileNumber string) (*models.User, err
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var query = `SELECT * 
+	var query = `SELECT ` + userColumns + `  
 				 FROM users
 				 WHERE mobile_number = $1
 	`
 
 	row := pool.QueryRow(ctx, query, mobileNumber)
+	return scanUser(row)
+}
+
+func GetUserById(pool *pgxpool.Pool, id string) (*models.User, error) {
+	var ctx context.Context
+	var cancel context.CancelFunc
+
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var query = `SELECT * 
+				 FROM users
+				 WHERE id = $1
+	`
+
+	row := pool.QueryRow(ctx, query, id)
+	return scanUser(row)
+}
+
+// Locks the user found based on id in a transaction for lock operations (update, share, etc)
+func GetUserByIdAndLockTxn(ctx context.Context, db database.DBTX, id string, lock database.LockMode) (*models.User, error) {
+	query := `SELECT ` + userColumns + ` FROM users WHERE id = $1` + lock.Clause()
+
+	row := db.QueryRow(ctx, query, id)
 	return scanUser(row)
 }
 
@@ -106,7 +134,6 @@ func FindUserByMobileForUpdate(ctx context.Context, db database.DBTX, mobile str
 // Returns pgx.ErrNoRows when another transaction created the same mobile number
 // first (ON CONFLICT DO NOTHING returns no row); the caller should re-select.
 func CreateUserInTransaction(ctx context.Context, db database.DBTX, name string, email *string, mobileNumber, role string, gender string, dob time.Time) (*models.User, error) {
-	fmt.Printf("date is %v", dob)
 	row := db.QueryRow(ctx, `
 		INSERT INTO users (full_name, email, mobile_number, role, gender, dob)
 		VALUES ($1, $2, $3, $4, $5, $6)

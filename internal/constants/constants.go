@@ -1,5 +1,7 @@
 package constants
 
+const DOBLayout = "2006-01-02"
+
 // ---------Roles
 const (
 	ROLE_CUSTOMER   = "CUSTOMER"
@@ -55,6 +57,10 @@ const (
 	UNAUTHORIZED         = "Unauthorized"
 	FORBIDDEN            = "Forbidden"
 	TOKEN_EXPIRED        = "Token Expired"
+	SITE_ID              = "site id"
+	SUPERVISOR_ID        = "supervisor id"
+	INVALID              = "Invalid"
+	QUERY_PARAMS         = "Query Params"
 )
 
 // --------------File-Related-Constants
@@ -67,4 +73,21 @@ const (
 	INVALID_FORM_DATA            = "Invalid form data"
 	FILE_KIND_IMAGE              = "IMAGE"
 	FILE_KIND_FILE               = "FILE"
+)
+
+// ----------------Driver-Related-Constants
+const (
+	DRIVER_STATUS_AVAILABLE = "AVAILABLE"
+	DRIVER_STATUS_ON_DUTY   = "ON_DUTY"
+	DRIVER_STATUS_OFF_DUTY  = "OFF_DUTY"
+	DRIVER_STATUS_SUSPENDED = "SUSPENDED"
+	DRIVER_STATUS_INACTIVE  = "INACTIVE"
+)
+
+// ---------------KYC-Related-Constants
+const (
+	KYC_STATUS_PENDING   = "PENDING"
+	KYC_STATUS_SUBMITTED = "SUBMITTED"
+	KYC_STATUS_VERIFIED  = "VERIFIED"
+	KYC_STATUS_REJECTED  = "REJECTED"
 )
