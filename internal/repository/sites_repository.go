@@ -253,3 +253,18 @@ func UpdateSite(pool *pgxpool.Pool, siteId string, newDetails dto.UpdateSiteRequ
 
 	return scanSite(row)
 }
+
+func GetSiteBySiteId(pool *pgxpool.Pool, siteId string) (*models.Site, error) {
+	var ctx context.Context
+	var cancel context.CancelFunc
+
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `SELECT id, ` + siteColumns + ` created_by, updated_by
+			  FROM sites
+			  WHERE id = $1`
+
+	row := pool.QueryRow(ctx, query, siteId)
+	return scanSite(row)
+}

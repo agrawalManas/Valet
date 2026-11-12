@@ -66,6 +66,8 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config, 
 	{
 		adminSupervisorCommonApi.GET("/drivers-by-supervisor", handler.GetAllDriversForSiteHandler(pool, false))
 		adminSupervisorCommonApi.GET("/drivers-by-site/:id", handler.GetAllDriversForSiteHandler(pool, true))
+		adminSupervisorCommonApi.POST("/create-slot", handler.CreateSlotHandler(pool))
+		adminSupervisorCommonApi.PATCH("/update-slot", handler.UpdateSlotHandler(pool))
 	}
 
 	// customerSupervisorCommonApi := router.Group("api/review")

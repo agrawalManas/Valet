@@ -61,6 +61,7 @@ const (
 	SUPERVISOR_ID        = "supervisor id"
 	INVALID              = "Invalid"
 	QUERY_PARAMS         = "Query Params"
+	NOT_FOUND            = "Not Found"
 )
 
 // --------------File-Related-Constants
