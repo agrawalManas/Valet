@@ -42,7 +42,7 @@ func RespondRepoError(ctx *gin.Context, err error) {
 		return
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
-		ctx.JSON(http.StatusNotFound, HandleErrorResponse(constants.USER_NOT_FOUND))
+		ctx.JSON(http.StatusNotFound, HandleErrorResponse(constants.NOT_FOUND))
 		return
 	}
 	log.Printf("%s %s %s: %v", ctx.Request.Method, ctx.FullPath(), getParentFunctionName(), err)
@@ -50,7 +50,6 @@ func RespondRepoError(ctx *gin.Context, err error) {
 }
 
 func getParentFunctionName() string {
-	// Skip 1 frame to get the caller of the current function
 	pc, _, _, ok := runtime.Caller(2)
 	if !ok {
 		return "unknown method"
