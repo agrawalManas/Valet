@@ -45,7 +45,7 @@ func AddDriverToSite(ctx context.Context, pool *pgxpool.Pool, supervisorId strin
 	err = pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 		_, err := repository.GetUserByMobile(pool, req.MobileNumber)
 		if err == nil {
-			return invalid("A user with the given mobile number already exists, cannot add this driver")
+			return CustomUtils.Invalid("A user with the given mobile number already exists, cannot add this driver")
 		}
 
 		s, err := getSupervisorDetails(pool, supervisorId)
@@ -78,17 +78,17 @@ func AddDriverToSite(ctx context.Context, pool *pgxpool.Pool, supervisorId strin
 func validateDriverRequest(req dto.CreateDriverRequest) (time.Time, error) {
 	dob, err := time.Parse(constants.DOBLayout, req.Dob)
 	if err != nil {
-		return time.Time{}, invalid("driver_dob must be a valid date in YYYY-MM-DD format")
+		return time.Time{}, CustomUtils.Invalid("driver_dob must be a valid date in YYYY-MM-DD format")
 	}
 
 	if dob.After(time.Now()) {
-		return time.Time{}, invalid("driver_dob cannot be in the future")
+		return time.Time{}, CustomUtils.Invalid("driver_dob cannot be in the future")
 	}
 
 	//TODO: add age check
 
 	if req.ShiftEndTime.Before(req.ShiftStartTime) {
-		return time.Time{}, invalid("driver's shift end time cannot be after shift start time")
+		return time.Time{}, CustomUtils.Invalid("driver's shift end time cannot be after shift start time")
 	}
 
 	return dob, nil
@@ -205,18 +205,18 @@ func validateUser(checkFor string, supervisor *models.User, driver *models.User)
 	switch checkFor {
 	case constants.ROLE_SUPERVISOR:
 		if CustomUtils.Deref(supervisor.Role) != constants.ROLE_SUPERVISOR {
-			return invalid("The given supervisor id does not correspond to " + constants.ROLE_SUPERVISOR + " role")
+			return CustomUtils.Invalid("The given supervisor id does not correspond to " + constants.ROLE_SUPERVISOR + " role")
 		}
 		if !supervisor.IsActive {
-			return invalid("The given supervisor id is not an active user")
+			return CustomUtils.Invalid("The given supervisor id is not an active user")
 		}
 
 	case constants.ROLE_DRIVER:
 		if CustomUtils.Deref(driver.Role) != constants.ROLE_DRIVER {
-			return invalid("The given driver id does not correspond to " + constants.ROLE_DRIVER + " role")
+			return CustomUtils.Invalid("The given driver id does not correspond to " + constants.ROLE_DRIVER + " role")
 		}
 		if !driver.IsActive {
-			return invalid("The given driver id is not an active user")
+			return CustomUtils.Invalid("The given driver id is not an active user")
 		}
 	}
 

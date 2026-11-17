@@ -66,11 +66,21 @@ func CreateBookingInTxn(ctx context.Context, db database.DBTX, userId, createdBy
 	query := `
 		INSERT INTO bookings (` + bookingColumns + `)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
-		RETURNING ` + `id,` + bookingColumns + ", total_amount, created_at, updated_at"
+		RETURNING ` + `id, ` + bookingColumns + ", total_amount, created_at, updated_at"
 
 	row := db.QueryRow(ctx, query, userId, createdBy, bookingReq.SiteId, bookingReq.SlotId, bookingReq.VehicleNumber, bookingReq.VehicleName,
 		bookingReq.BookingDate, "SCHEDULED", bookingReq.BookingType, bookingReq.BookingMode, bookingReq.PaymentMethod, paymentStatus,
 		nil, nil, bookingReq.ValetAmount, bookingReq.InsuranceOpted, bookingReq.InsuranceAmount, bookingReq.TotalTax)
 
+	return scanBooking(row)
+}
+
+func UpdateBookingAndPaymentStatusInTxn(ctx context.Context, db database.DBTX, bookingId string, status, paymentStatus *string) (*models.Booking, error) {
+	query := `UPDATE bookings
+			  SET status = COALESCE($2, status), payment_status = COALESCE($3, payment_status), updated_at = CURRENT_TIMESTAMP
+			  WHERE id = $1
+			  RETURNING ` + `id, ` + bookingColumns + ", total_amount, created_at, updated_at"
+
+	row := db.QueryRow(ctx, query, bookingId, status, paymentStatus)
 	return scanBooking(row)
 }
