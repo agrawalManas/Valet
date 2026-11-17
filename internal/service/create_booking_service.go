@@ -99,7 +99,7 @@ func CreateBooking(ctx context.Context, pool *pgxpool.Pool, createdBy string, re
 		//-----------------Step 5
 		var cgst float64 = 0.09
 		var sgst float64 = 0.09
-		var totalTaxes float64 = (site.ValetFee * cgst) + (site.ValetFee * sgst)
+		var totalTaxes float64 = (site.ValetFee * cgst) + (site.ValetFee * sgst) + (insuranceAmount * 0.18)
 
 		//------------------Step 6
 		bookingReq := buildBooking(createdBy, site.ValetFee, totalTaxes, insuranceAmount, req)
