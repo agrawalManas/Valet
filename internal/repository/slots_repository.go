@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"agrawalManas/Valet/internal/database"
 	"agrawalManas/Valet/internal/models"
 	"context"
 	"time"
@@ -53,5 +54,13 @@ func UpdateSlot(pool *pgxpool.Pool, slotId string, startTime, endTime *string, i
 			   RETURNING ` + slotColumns
 
 	row := pool.QueryRow(ctx, query, slotId, startTime, endTime, isOpen)
+	return scanSlot(row)
+}
+
+// Locks the user found based on id in a transaction for lock operations (update, share, etc)
+func GetSlotByIdAndLockTxn(ctx context.Context, db database.DBTX, slotId, siteId string, lock database.LockMode) (*models.Slot, error) {
+	query := `SELECT ` + slotColumns + ` FROM slots WHERE id = $1 AND site_id = $2` + lock.Clause()
+
+	row := db.QueryRow(ctx, query, slotId, siteId)
 	return scanSlot(row)
 }

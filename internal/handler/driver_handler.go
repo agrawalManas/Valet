@@ -130,7 +130,7 @@ func validateIDs(driverId, supervisorId string) error {
 		return err
 	}
 
-	err = CustomUtils.ValidateUUIDS(driverId, supervisorId)
+	err = CustomUtils.ValidateUUIDs(driverId, supervisorId)
 	if err != nil {
 		return err
 	}

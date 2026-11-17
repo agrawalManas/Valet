@@ -70,6 +70,12 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config, 
 		adminSupervisorCommonApi.PATCH("/update-slot", handler.UpdateSlotHandler(pool))
 	}
 
+	bookingApi := router.Group("api/bookings")
+	bookingApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_SUPERVISOR))
+	{
+		bookingApi.POST("/create-booking", handler.CreateBookingHandler(pool))
+	}
+
 	// customerSupervisorCommonApi := router.Group("api/review")
 	// customerSupervisorCommonApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_SUPERVISOR, constants.ROLE_CUSTOMER))
 	// {

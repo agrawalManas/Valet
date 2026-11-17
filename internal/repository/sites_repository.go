@@ -13,8 +13,7 @@ import (
 
 const siteColumns = `site_name, is_booking_allowed, parking_type, total_capacity, driver_count,
 			site_opening_time, site_closing_time, valet_fee, site_images,
-			pin_code, city, state, address_line_1, address_line_2, site_coordinates,
-			supervisor_id,
+			pin_code, city, state, address_line_1, address_line_2, site_coordinates, supervisor_id,
 			insurance_add_on_allowed, insurance_add_on_price,
 			tipping_allowed, tipping_amount, pick_tipping_allowed, drop_tipping_allowed,
 			created_by`
@@ -261,7 +260,7 @@ func GetSiteBySiteId(pool *pgxpool.Pool, siteId string) (*models.Site, error) {
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := `SELECT id, ` + siteColumns + ` created_by, updated_by
+	query := `SELECT id, ` + siteColumns + `, created_at, updated_at
 			  FROM sites
 			  WHERE id = $1`
 
