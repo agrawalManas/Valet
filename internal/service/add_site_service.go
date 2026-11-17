@@ -32,7 +32,6 @@ func invalid(msg string) error { return CustomUtils.Invalid(msg) }
 //  3. insert the site pointing at that user
 //
 // If any step fails, nothing is written: no orphan user, no half-created site.
-
 func CreateSite(ctx context.Context, pool *pgxpool.Pool, adminID string, req dto.AddSiteRequest) (*models.Site, error) {
 	dob, err := validateSiteRequest(req)
 	if err != nil {
@@ -77,7 +76,7 @@ func resolveSupervisor(ctx context.Context, tx pgx.Tx, in dto.SupervisorInput, d
 		// existing user: validated below
 
 	case errors.Is(err, pgx.ErrNoRows):
-		user, err = repository.CreateUserInTransaction(ctx, tx, in.FullName, in.Email, in.MobileNumber, constants.ROLE_SUPERVISOR, in.Gender, dob)
+		user, err = repository.CreateUserInTransaction(ctx, tx, &in.FullName, in.Email, in.MobileNumber, constants.ROLE_SUPERVISOR, &in.Gender, &dob)
 		if errors.Is(err, pgx.ErrNoRows) {
 			// A concurrent request created this number between our SELECT and INSERT.
 			// The unique index made us wait for it to commit, so re-select now.

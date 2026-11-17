@@ -92,3 +92,31 @@ const (
 	KYC_STATUS_VERIFIED  = "VERIFIED"
 	KYC_STATUS_REJECTED  = "REJECTED"
 )
+
+// -------------Booing-Type
+const (
+	BOOKING_TYPE_PREPAID = "PREPAID"
+	BOOKING_TYPE_GMC     = "GMC"
+)
+
+const (
+	BOOKING_MODE_B2B = "B2B"
+	BOOKING_MODE_B2C = "B2C"
+)
+
+// ---------------Payment-Methods
+const (
+	PAYMENT_METHOD_CASH       = "CASH"
+	PAYMENT_METHOD_UPI        = "UPI"
+	PAYMENT_METHOD_CARD       = "CARD"
+	PAYMENT_METHOD_NET_BANKIN = "NET_BANKING"
+)
+
+// -----------------Payment-Status
+const (
+	PAYMENT_STATUS_NOT_REQUIRED = "NOT_REQUIRED"
+	PAYMENT_STATUS_PENDING      = "PENDING"
+	PAYMENT_STATUS_PAID         = "PAID"
+	PAYMENT_STATUS_NOT_FAILED   = "FAILED"
+	PAYMENT_STATUS_REFUNDED     = "REFUNDED"
+)

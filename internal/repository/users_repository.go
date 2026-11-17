@@ -133,7 +133,7 @@ func FindUserByMobileForUpdate(ctx context.Context, db database.DBTX, mobile str
 // CreateUserInTransaction creates a new user with the given role.
 // Returns pgx.ErrNoRows when another transaction created the same mobile number
 // first (ON CONFLICT DO NOTHING returns no row); the caller should re-select.
-func CreateUserInTransaction(ctx context.Context, db database.DBTX, name string, email *string, mobileNumber, role string, gender string, dob time.Time) (*models.User, error) {
+func CreateUserInTransaction(ctx context.Context, db database.DBTX, name *string, email *string, mobileNumber, role string, gender *string, dob *time.Time) (*models.User, error) {
 	row := db.QueryRow(ctx, `
 		INSERT INTO users (full_name, email, mobile_number, role, gender, dob)
 		VALUES ($1, $2, $3, $4, $5, $6)

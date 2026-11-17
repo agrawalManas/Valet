@@ -23,14 +23,13 @@ var (
 
 // CreateDriver runs the whole flow in a single transaction:
 //
-//	1. check wether there exist a user with the given driver mobile number, if not then the below should be followed
+//  1. check wether there exist a user with the given driver mobile number, if not then the below should be followed
 //  2. find the supervisor by mobile number and check is_active (row locked)
 //  3. add a new user in the users table with role DRIVER with relevant details (name, mobile, dob, gender, role)
-//	4. create a new entry in driver_supervisors table for mapping
+//  4. create a new entry in driver_supervisors table for mapping
 //  5. create a new entry in drivers table with other details pointing to site id
 //
 // If any step fails, nothing is written: no orphan user.
-
 func AddDriverToSite(ctx context.Context, pool *pgxpool.Pool, supervisorId string, req dto.CreateDriverRequest) (*models.Driver, error) {
 	dob, err := validateDriverRequest(req)
 	if err != nil {
@@ -97,9 +96,8 @@ func validateDriverRequest(req dto.CreateDriverRequest) (time.Time, error) {
 
 // resolveDriver returns a locked, active user with the DRIVER role.
 func resolveDriver(ctx context.Context, tx pgx.Tx, in dto.CreateDriverRequest, dob time.Time) (*models.User, error) {
-	user, err := repository.CreateUserInTransaction(ctx, tx, in.FullName, in.Email, in.MobileNumber, constants.ROLE_DRIVER, in.Gender, dob)
+	user, err := repository.CreateUserInTransaction(ctx, tx, &in.FullName, in.Email, in.MobileNumber, constants.ROLE_DRIVER, &in.Gender, &dob)
 	if err != nil {
-		print("error", err.Error())
 		return nil, err
 	}
 

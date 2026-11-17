@@ -5,11 +5,18 @@ CREATE TABLE IF NOT EXISTS bookings (
     site_id           UUID NOT NULL REFERENCES sites(id),
     slot_id           UUID REFERENCES slots(id),
     vehicle_number    VARCHAR(12) NOT NULL,                   -- normalized: upper case, letters and digits only
+    vehicle_name      VARCHAR(255) NOT NULL,
 
     for_date          DATE NOT NULL,                         
     status            VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED',
     booking_type      VARCHAR(10) NOT NULL,
     booking_mode      VARCHAR(10) NOT NULL,
+
+    payment_method    VARCHAR(15),
+    payment_status    VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+
+    cancelled_at      TIMESTAMPTZ,
+    cancel_reason     TEXT,
 
     -- Amounts are copied from the site when the booking is made, so a later price
     -- change never alters an old booking. They are computed on the server.
@@ -18,12 +25,6 @@ CREATE TABLE IF NOT EXISTS bookings (
     insurance_amount  NUMERIC(10,2) NOT NULL DEFAULT 0,
     taxes             NUMERIC(10,2) NOT NULL DEFAULT 0,
     total_amount      NUMERIC(12,2) GENERATED ALWAYS AS (valet_amount + insurance_amount + taxes) STORED,
-
-    payment_method    VARCHAR(15),
-    payment_status    VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-
-    cancelled_at      TIMESTAMPTZ,
-    cancel_reason     TEXT,
 
     created_at        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -40,7 +41,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     -- PREPAID needs a payment method and a real payment status. GMC has neither.
     CONSTRAINT chk_bookings_payment      CHECK (
         (booking_type = 'PREPAID' AND payment_method IS NOT NULL AND payment_status <> 'NOT_REQUIRED')
-     OR (booking_type = 'GMC'     AND payment_method IS NULL     AND payment_status = 'NOT_REQUIRED')),
+     OR (booking_type = 'GMC'     AND payment_method IS NULL     AND payment_status = 'PENDING')),
     CONSTRAINT chk_bookings_slot         CHECK (status <> 'SCHEDULED' OR slot_id IS NOT NULL),
     CONSTRAINT chk_bookings_cancelled    CHECK ((status = 'CANCELLED') = (cancelled_at IS NOT NULL))
 );
