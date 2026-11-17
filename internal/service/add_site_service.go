@@ -23,8 +23,6 @@ var (
 
 type ValidationError = CustomUtils.ValidationError
 
-func invalid(msg string) error { return CustomUtils.Invalid(msg) }
-
 // CreateSite runs the whole flow in a single transaction:
 //
 //  1. find the supervisor by mobile number (row locked), or create the user
@@ -112,25 +110,25 @@ func resolveSupervisor(ctx context.Context, tx pgx.Tx, in dto.SupervisorInput, d
 func validateSiteRequest(req dto.AddSiteRequest) (time.Time, error) {
 	dob, err := time.Parse(constants.DOBLayout, req.SupervisorDetails.Dob)
 	if err != nil {
-		return time.Time{}, invalid("supervisor_dob must be a valid date in YYYY-MM-DD format")
+		return time.Time{}, CustomUtils.Invalid("supervisor_dob must be a valid date in YYYY-MM-DD format")
 	}
 	if dob.After(time.Now()) {
-		return time.Time{}, invalid("supervisor_dob cannot be in the future")
+		return time.Time{}, CustomUtils.Invalid("supervisor_dob cannot be in the future")
 	}
 
 	if CustomUtils.Deref(req.InsuranceAddOnAllowed) {
 		if req.SiteInsuranceAddOn == nil || req.SiteInsuranceAddOn.Price == nil || *req.SiteInsuranceAddOn.Price <= 0 {
-			return time.Time{}, invalid("insurance_add_on_price must be greater than 0 when the insurance add-on is allowed")
+			return time.Time{}, CustomUtils.Invalid("insurance_add_on_price must be greater than 0 when the insurance add-on is allowed")
 		}
 	}
 
 	if CustomUtils.Deref(req.TippingAllowed) {
 		if req.TippingDetails == nil {
-			return time.Time{}, invalid("tipping_details is required when tipping is allowed")
+			return time.Time{}, CustomUtils.Invalid("tipping_details is required when tipping is allowed")
 		}
 		for i, amount := range req.TippingDetails.Amounts {
 			if amount <= 0 {
-				return time.Time{}, invalid(fmt.Sprintf("tipping_amount[%d] must be greater than 0", i))
+				return time.Time{}, CustomUtils.Invalid(fmt.Sprintf("tipping_amount[%d] must be greater than 0", i))
 			}
 		}
 	}
