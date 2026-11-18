@@ -84,3 +84,13 @@ func UpdateBookingAndPaymentStatusInTxn(ctx context.Context, db database.DBTX, b
 	row := db.QueryRow(ctx, query, bookingId, status, paymentStatus)
 	return scanBooking(row)
 }
+
+func GetBookingByIdInTxn(ctx context.Context, db database.DBTX, bookingId string) (*models.Booking, error) {
+	query := `SELECT id, ` + bookingColumns + `, total_amount, created_at, updated_at
+			  FROM bookings
+			  WHERE id = $1
+			  RETURNING ` + `id, ` + bookingColumns + ", total_amount, created_at, updated_at"
+
+	row := db.QueryRow(ctx, query, bookingId)
+	return scanBooking(row)
+}
