@@ -28,6 +28,10 @@ func DerefSlice[T any](items []*T) []T {
 	return result
 }
 
+func GetPtr[T any](value T) *T {
+	return &value
+}
+
 func GenerateObjectKey(
 	visibility string,
 	kind string,

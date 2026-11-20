@@ -62,6 +62,7 @@ const (
 	INVALID              = "Invalid"
 	QUERY_PARAMS         = "Query Params"
 	NOT_FOUND            = "Not Found"
+	MALFORMED_REQUEST    = "Malformed Request"
 )
 
 // --------------File-Related-Constants
@@ -117,7 +118,7 @@ const (
 	PAYMENT_STATUS_NOT_REQUIRED = "NOT_REQUIRED"
 	PAYMENT_STATUS_PENDING      = "PENDING"
 	PAYMENT_STATUS_PAID         = "PAID"
-	PAYMENT_STATUS_NOT_FAILED   = "FAILED"
+	PAYMENT_STATUS_FAILED       = "FAILED"
 	PAYMENT_STATUS_REFUNDED     = "REFUNDED"
 )
 

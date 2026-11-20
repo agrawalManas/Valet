@@ -5,6 +5,7 @@ import "time"
 type Ride struct {
 	Id              string   `json:"id"`
 	BookingId       string   `json:"booking_id"`
+	SiteId          string   `json:"site_id"`
 	RideStatus      string   `json:"ride_status"`
 	CreatedBy       string   `json:"created_by"`
 	PickDriverId    string   `json:"-"`

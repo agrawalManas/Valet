@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS ride_reviews (
 CREATE TABLE IF NOT EXISTS rides (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     booking_id        UUID NOT NULL UNIQUE REFERENCES bookings(id),   -- one ride per booking
+    site_id           UUID REFERENCES sites(id),
     ride_status       VARCHAR(20) NOT NULL DEFAULT 'REQUESTED',
     created_by        UUID NOT NULL REFERENCES users(id),
  

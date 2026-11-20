@@ -5,6 +5,7 @@ import (
 	"agrawalManas/Valet/internal/models"
 	CustomUtils "agrawalManas/Valet/pkg/utils"
 	"context"
+	"errors"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -166,4 +167,21 @@ func UpdateCurrentDriverSupervisorInTxn(ctx context.Context, db database.DBTX, d
 
 	row := db.QueryRow(ctx, query, driverId, supervisorId)
 	return scanDriver(row, false)
+}
+
+func CheckDriverAgainstSiteIdInTx(ctx context.Context, db database.DBTX, driverId, siteId string) (bool, error) {
+	var driver models.Driver
+
+	const query = `SELECT id, site_id
+		FROM drivers
+		WHERE id = $1 AND site_id = $2`
+
+	err := db.QueryRow(ctx, query, driverId, siteId).Scan(&driver.Id, &driver.SiteId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
