@@ -26,12 +26,11 @@ import (
 // If any step fails, nothing is written: no orphan entry in the bookings table.
 func CreateBooking(ctx context.Context, pool *pgxpool.Pool, createdBy string, req dto.CreateBookingRequest) (*models.Booking, error) {
 	var err error
-	ctx, cancel := context.WithTimeout(ctx, 500*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	var booking *models.Booking
 
-	// BeginFunc commits when the function returns nil and rolls back on any error or panic.
 	err = pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 		var insuranceAmount float64 = 0
 

@@ -76,6 +76,17 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config, 
 		bookingApi.POST("/create-booking", handler.CreateBookingHandler(pool))
 	}
 
+	ridesApi := router.Group("api/rides")
+	ridesApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_DRIVER, constants.ROLE_SUPERVISOR))
+	{
+		ridesApi.POST("/create-ride", handler.CreateRideHandler(pool))
+		ridesApi.POST("/request-gmc", handler.RequestGMCHandler(pool))
+		ridesApi.PATCH("/update-ride", handler.UpdateRideHandler(pool))
+	}
+	ridesApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_SUPERVISOR, constants.ROLE_ADMIN))
+	{
+		ridesApi.GET("/get-ride-timeline/:id", handler.RideTimelineHandler(pool))
+	}
 	// customerSupervisorCommonApi := router.Group("api/review")
 	// customerSupervisorCommonApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_SUPERVISOR, constants.ROLE_CUSTOMER))
 	// {

@@ -75,12 +75,22 @@ func CreateBookingInTxn(ctx context.Context, db database.DBTX, userId, createdBy
 	return scanBooking(row)
 }
 
-func UpdateBookingAndPaymentStatusInTxn(ctx context.Context, db database.DBTX, bookingId string, status, paymentStatus *string) (*models.Booking, error) {
+func UpdateBookingAndPaymentStatusInTxn(ctx context.Context, db database.DBTX, bookingId string, bookingStatus, paymentStatus *string) (*models.Booking, error) {
 	query := `UPDATE bookings
 			  SET status = COALESCE($2, status), payment_status = COALESCE($3, payment_status), updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING ` + `id, ` + bookingColumns + ", total_amount, created_at, updated_at"
 
-	row := db.QueryRow(ctx, query, bookingId, status, paymentStatus)
+	row := db.QueryRow(ctx, query, bookingId, bookingStatus, paymentStatus)
+	return scanBooking(row)
+}
+
+func GetBookingByIdInTxn(ctx context.Context, db database.DBTX, bookingId string) (*models.Booking, error) {
+	query := `SELECT id, ` + bookingColumns + `, total_amount, created_at, updated_at
+			  FROM bookings
+			  WHERE id = $1
+			  RETURNING ` + `id, ` + bookingColumns + ", total_amount, created_at, updated_at"
+
+	row := db.QueryRow(ctx, query, bookingId)
 	return scanBooking(row)
 }

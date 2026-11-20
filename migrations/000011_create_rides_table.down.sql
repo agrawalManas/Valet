@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS ride_reviews;
+DROP TABLE IF EXISTS rides;
