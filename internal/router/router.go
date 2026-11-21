@@ -83,7 +83,9 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config, 
 		ridesApi.POST("/request-gmc", handler.RequestGMCHandler(pool))
 		ridesApi.PATCH("/update-ride", handler.UpdateRideHandler(pool))
 	}
-	ridesApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_SUPERVISOR, constants.ROLE_ADMIN))
+
+	rideManagement := ridesApi.Group("")
+	rideManagement.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_SUPERVISOR, constants.ROLE_ADMIN))
 	{
 		ridesApi.GET("/get-ride-timeline/:id", handler.RideTimelineHandler(pool))
 		ridesApi.POST("/update-payment-status", handler.UpdatePaymentStatusHandler(pool))
