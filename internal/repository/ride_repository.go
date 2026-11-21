@@ -47,11 +47,11 @@ func CreateNewRideInTxn(ctx context.Context, db database.DBTX, bookingId, siteId
 	return scanRide(row)
 }
 
-func GetRideDetailsByID(ctx context.Context, db database.DBTX, rideId string) (*models.Ride, error) {
+func GetRideDetailsByID(ctx context.Context, db database.DBTX, rideId string, lock database.LockMode) (*models.Ride, error) {
 
 	query := `SELECT ` + rideColumns + `
 			  FROM rides
-			  WHERE id = $1`
+			  WHERE id = $1` + lock.Clause()
 	row := db.QueryRow(ctx, query, rideId)
 
 	return scanRide(row)
