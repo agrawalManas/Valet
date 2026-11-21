@@ -12,6 +12,9 @@ func Invalid(msg string) error           { return &ValidationError{Msg: msg} }
 
 func ValidateUUIDs(ids ...string) error {
 	for _, id := range ids {
+		if id == "" {
+			return Invalid("The id cannot be an empty")
+		}
 		_, err := uuid.Parse(id)
 		if err != nil {
 			return Invalid("Not a valid id- " + id)

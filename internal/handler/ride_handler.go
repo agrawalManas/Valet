@@ -22,15 +22,7 @@ func CreateRideHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		vrn := ctx.Query("vrn")
 		siteId := ctx.Query("site_id")
 
-		if bookingId == "" {
-			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse("Please provide a booking id"))
-			return
-		}
 		if vrn == "" {
-			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse("Please provide the vehicle number"))
-			return
-		}
-		if siteId == "" {
 			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse("Please provide the vehicle number"))
 			return
 		}
