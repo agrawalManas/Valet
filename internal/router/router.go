@@ -86,6 +86,7 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config, 
 	ridesApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_SUPERVISOR, constants.ROLE_ADMIN))
 	{
 		ridesApi.GET("/get-ride-timeline/:id", handler.RideTimelineHandler(pool))
+		ridesApi.POST("/update-payment-status", handler.UpdatePaymentStatusHandler(pool))
 	}
 	// customerSupervisorCommonApi := router.Group("api/review")
 	// customerSupervisorCommonApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_SUPERVISOR, constants.ROLE_CUSTOMER))
