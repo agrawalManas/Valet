@@ -11,15 +11,14 @@ import (
 
 func UpdatePaymentStatusHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		bookingId := ctx.Query("booking_id")
 		rideId := ctx.Query("ride_id")
 
-		err := CustomUtils.ValidateUUIDs(bookingId, rideId)
+		err := CustomUtils.ValidateUUIDs(rideId)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(err.Error()))
 		}
 
-		err = service.UpdatePaymentStatusService(ctx, pool, bookingId, rideId)
+		err = service.UpdatePaymentStatusService(ctx, pool, rideId)
 		if err != nil {
 			CustomUtils.RespondRepoError(ctx, err)
 			return

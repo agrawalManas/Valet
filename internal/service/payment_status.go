@@ -2,6 +2,7 @@ package service
 
 import (
 	"agrawalManas/Valet/internal/constants"
+	"agrawalManas/Valet/internal/database"
 	"agrawalManas/Valet/internal/repository"
 	CustomUtils "agrawalManas/Valet/pkg/utils"
 	"context"
@@ -11,12 +12,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// UpdatePaymentStatusService handles updating the payment status for a given booking id(marking as PAID) in a single transaction with following steps:
+// UpdatePaymentStatusService handles updating the payment status for a given booking id(marking as PAID manually) in a single transaction with following steps:
 //
 // 1. get the ride details check the current ride_status and match the booking id
 // 2. get the booking details and check the booking_status and payment_status
 // 3. update the booking status, payment_status in bookings table
-func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, bookingId, rideId string) error {
+func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, rideId string) error {
 	var err error
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -26,13 +27,9 @@ func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, booking
 		var err error
 
 		// ---------Step 1
-		ride, err := repository.GetRideDetailsByID(ctx, tx, rideId)
+		ride, err := repository.GetRideDetailsByID(ctx, tx, rideId, database.ForShare)
 		if err != nil {
 			return err
-		}
-
-		if ride.BookingId != bookingId {
-			return CustomUtils.Invalid("This ride id does not correspond to the given booking id")
 		}
 
 		err = resolveRideStatus(ride.RideStatus)
@@ -41,7 +38,7 @@ func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, booking
 		}
 
 		// -----------Step 2
-		booking, err := repository.GetBookingByIdInTxn(ctx, tx, bookingId)
+		booking, err := repository.GetBookingByIdInTxn(ctx, tx, ride.BookingId, database.ForUpdate)
 		if err != nil {
 			return err
 		}
@@ -57,7 +54,7 @@ func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, booking
 		}
 
 		// -----------Step 3
-		_, err = repository.UpdateBookingAndPaymentStatusInTxn(ctx, tx, bookingId, &booking.Status, &newPaymentStatus)
+		_, err = repository.UpdateBookingAndPaymentStatusInTxn(ctx, tx, ride.BookingId, &booking.Status, &newPaymentStatus)
 		if err != nil {
 			return err
 		}

@@ -33,7 +33,7 @@ func CreateRideHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		ride, _, err := service.CreateRideService(ctx, pool, bookingId, vrn, siteId, currentUser)
+		ride, err := service.CreateRideService(ctx, pool, bookingId, vrn, currentUser)
 		if err != nil {
 			CustomUtils.RespondRepoError(ctx, err)
 			return
