@@ -76,19 +76,22 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config, 
 		bookingApi.POST("/create-booking", handler.CreateBookingHandler(pool))
 	}
 
-	ridesApi := router.Group("api/rides")
-	ridesApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_DRIVER, constants.ROLE_SUPERVISOR))
+	ridesApi := router.Group("/api/rides")
+	ridesApi.Use(middleware.AuthMiddleware(pool, cfg))
+
+	rideOperations := ridesApi.Group("")
+	rideOperations.Use(middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_DRIVER, constants.ROLE_SUPERVISOR))
 	{
-		ridesApi.POST("/create-ride", handler.CreateRideHandler(pool))
-		ridesApi.POST("/request-gmc", handler.RequestGMCHandler(pool))
-		ridesApi.PATCH("/update-ride", handler.UpdateRideHandler(pool))
+		rideOperations.POST("/start-ride", handler.StartRideHandler(pool))
+		rideOperations.POST("/request-gmc", handler.RequestGMCHandler(pool))
+		rideOperations.PATCH("/update-ride", handler.UpdateRideHandler(pool))
 	}
 
 	rideManagement := ridesApi.Group("")
-	rideManagement.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_SUPERVISOR, constants.ROLE_ADMIN))
+	rideManagement.Use(middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_SUPERVISOR, constants.ROLE_ADMIN))
 	{
-		ridesApi.GET("/get-ride-timeline/:id", handler.RideTimelineHandler(pool))
-		ridesApi.POST("/update-payment-status", handler.UpdatePaymentStatusHandler(pool))
+		rideManagement.GET("/get-ride-timeline/:id", handler.RideTimelineHandler(pool))
+		rideManagement.POST("/update-payment-status", handler.UpdatePaymentStatusHandler(pool))
 	}
 	// customerSupervisorCommonApi := router.Group("api/review")
 	// customerSupervisorCommonApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_SUPERVISOR, constants.ROLE_CUSTOMER))

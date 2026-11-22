@@ -15,7 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-//	CreateRideService runs upon the assumption that all the site/slot related validations were done while creating the booking,
+//	StartRideService runs upon the assumption that all the site/slot related validations were done while creating the booking,
 //	allowing us to start the ride cycle. The following takes place in this transaction:
 //
 //	1. get booking details from booking id and check if the booking date is of today, the vehicle number matches and booking status is Scheduled
@@ -27,7 +27,7 @@ import (
 //		as for the driver created rides, the pickup_driver is caller only
 //
 // If any step fails, nothing is written: no orphan entry in the rides and ride_history table.
-func CreateRideService(ctx context.Context, pool *pgxpool.Pool, bookingId, vrn string, currentUser middleware.AuthUser) (*models.Ride, error) {
+func StartRideService(ctx context.Context, pool *pgxpool.Pool, bookingId, vrn string, currentUser middleware.AuthUser) (*models.Ride, error) {
 	var err error
 	var ride *models.Ride
 
@@ -125,8 +125,16 @@ func resolveBooking(ctx context.Context, tx database.DBTX, bookingId, vrn string
 		return nil, CustomUtils.Invalid("The booking date is not of today")
 	}
 
+	if booking.Status == constants.BOOKING_STATUS_ACTIVE {
+		return nil, CustomUtils.Invalid("This ride is already active, cannot start a new ride")
+	}
+
+	if booking.Status == constants.BOOKING_STATUS_COMPLETED {
+		return nil, CustomUtils.Invalid("This ride is already completed")
+	}
+
 	if booking.Status != constants.BOOKING_STATUS_SCHEDULED {
-		return nil, CustomUtils.Invalid("Cannot start a new ride for this booking as the current booking is " + booking.Status)
+		return nil, CustomUtils.Invalid("Cannot start a new ride, as the current booking is " + booking.Status)
 	}
 	return booking, nil
 }
@@ -159,10 +167,12 @@ func UpdateRideService(ctx context.Context, pool *pgxpool.Pool, req dto.UpdateRi
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Second)
 	defer cancel()
 
+	var driverId *string
 	previousStatus := req.PreviousStatus
 	isPickOrDropRequest := previousStatus == constants.RIDE_STATUS_REQUESTED || previousStatus == constants.RIDE_STATUS_GMC_REQUESTED
 	if isPickOrDropRequest && currentUser.Role != constants.ROLE_DRIVER {
 		err = CustomUtils.Invalid("This ride can be moved forward when a driver accepts the request")
+		return nil, err
 	}
 	err = pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 		// -----------Step 1
@@ -172,6 +182,10 @@ func UpdateRideService(ctx context.Context, pool *pgxpool.Pool, req dto.UpdateRi
 		}
 
 		var status = ride.RideStatus
+		if status == constants.RIDE_STATUS_COMPLETED {
+			return CustomUtils.Invalid("This ride has already been completed!")
+		}
+
 		if previousStatus != status {
 			return CustomUtils.Invalid("Current ride status " + status + " does not match the given previous_status")
 		}
@@ -186,8 +200,9 @@ func UpdateRideService(ctx context.Context, pool *pgxpool.Pool, req dto.UpdateRi
 			if !validDriver {
 				return CustomUtils.Invalid("Driver not associated with this site")
 			}
+			driverId = &currentUser.ID
 		}
-		updatedRide, err = repository.StepUpRideInTxn(ctx, tx, req)
+		updatedRide, err = repository.StepUpRideInTxn(ctx, tx, req, driverId)
 		if err != nil {
 			// if errors.Is(err, pgx.ErrNoRows) {
 			// 	return CustomUtils.Invalid("No ride found with given ride_id")
@@ -196,7 +211,7 @@ func UpdateRideService(ctx context.Context, pool *pgxpool.Pool, req dto.UpdateRi
 		}
 
 		// ------------Step 3
-		r := buildRideHistoryReq(req.RideID, &req.PreviousStatus, updatedRide.RideStatus, &currentUser.ID, &currentUser.Role, getDriverIdForRideHistory(req))
+		r := buildRideHistoryReq(req.RideID, &req.PreviousStatus, updatedRide.RideStatus, &currentUser.ID, &currentUser.Role, getDriverIdForRideHistory(req, currentUser.ID))
 		_, err = repository.AddRideHistoryInTxn(ctx, tx, r)
 		if err != nil {
 			return err
@@ -204,7 +219,7 @@ func UpdateRideService(ctx context.Context, pool *pgxpool.Pool, req dto.UpdateRi
 
 		// --------------Step 4
 		if updatedRide.RideStatus == constants.RIDE_STATUS_COMPLETED {
-			_, err = repository.UpdateBookingAndPaymentStatusInTxn(ctx, tx, req.BookingId, CustomUtils.GetPtr(constants.BOOKING_STATUS_COMPLETED), nil)
+			_, err = repository.UpdateBookingAndPaymentStatusInTxn(ctx, tx, ride.BookingId, CustomUtils.GetPtr(constants.BOOKING_STATUS_COMPLETED), nil)
 			if err != nil {
 				return CustomUtils.Invalid("Failed to update booking status: " + err.Error())
 			}
@@ -219,14 +234,12 @@ func UpdateRideService(ctx context.Context, pool *pgxpool.Pool, req dto.UpdateRi
 	return updatedRide, nil
 }
 
-func getDriverIdForRideHistory(req dto.UpdateRideRequest) *string {
+func getDriverIdForRideHistory(req dto.UpdateRideRequest, currentUserId string) *string {
 	var driverId *string = nil
 
 	switch req.PreviousStatus {
-	case constants.RIDE_STATUS_GMC_REQUESTED, constants.RIDE_STATUS_DROP_ASSIGNED, constants.RIDE_STATUS_DROP_ENROUTE, constants.RIDE_STATUS_DROP_COMPLETED:
-		driverId = req.DropDriverId
-	case constants.RIDE_STATUS_REQUESTED, constants.RIDE_STATUS_PICK_ASSIGNED, constants.RIDE_STATUS_PICK_COMPLETED, constants.RIDE_STATUS_PARKED:
-		driverId = req.PickDriverId
+	case constants.RIDE_STATUS_GMC_REQUESTED, constants.RIDE_STATUS_REQUESTED:
+		driverId = &currentUserId
 	}
 	return driverId
 }
@@ -240,7 +253,7 @@ func getDriverIdForRideHistory(req dto.UpdateRideRequest) *string {
 func RequestGMCService(ctx context.Context, pool *pgxpool.Pool, req dto.UpdateRideRequest, currentUser middleware.AuthUser) (*models.Ride, error) {
 	var err error
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
 	var updatedRide *models.Ride
@@ -256,8 +269,12 @@ func RequestGMCService(ctx context.Context, pool *pgxpool.Pool, req dto.UpdateRi
 			return CustomUtils.Invalid("Invalid operation when the current ride status is: " + ride.RideStatus)
 		}
 
+		if req.BookingId != ride.BookingId {
+			return CustomUtils.Invalid("The given booking is not associated with the ride id")
+		}
+
 		// -------------Step 2
-		booking, err := repository.GetBookingByIdInTxn(ctx, tx, req.BookingId, database.ForShare)
+		booking, err := repository.GetBookingByIdInTxn(ctx, tx, ride.BookingId, database.ForShare)
 		if err != nil {
 			return err
 		}
@@ -265,7 +282,7 @@ func RequestGMCService(ctx context.Context, pool *pgxpool.Pool, req dto.UpdateRi
 
 		// --------------Step 3
 		if CustomUtils.Deref(paymentStatus) == constants.PAYMENT_STATUS_NOT_REQUIRED || CustomUtils.Deref(paymentStatus) == constants.PAYMENT_STATUS_PAID {
-			updatedRide, err = repository.StepUpRideInTxn(ctx, tx, req)
+			updatedRide, err = repository.StepUpRideInTxn(ctx, tx, req, nil)
 			if err != nil {
 				// if errors.Is(err, pgx.ErrNoRows) {
 				// 	return CustomUtils.Invalid("No ride found with given ride_id")

@@ -12,15 +12,15 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const rideColumns = `booking_id, site_id, ride_status, created_by, pick_driver_id, drop_driver_id, supervisor_id, pick_review_id, drop_review_id
+const rideColumns = `booking_id, site_id, ride_status, created_by, pick_driver_id, drop_driver_id, supervisor_id, pick_review_id, drop_review_id,
 					 ride_review_id, parking_location, parked_car_images, otp`
 const rideHistoryColumns = `ride_id, from_status, to_status, actor_id, actor_role, driver_id`
 
 func scanRide(row pgx.Row) (*models.Ride, error) {
 	var ride models.Ride
 
-	err := row.Scan(&ride.Id, &ride.BookingId, &ride.SiteId, &ride.RideStatus, &ride.CreatedBy, &ride.PickReviewId, &ride.DropDriverId, &ride.PickReviewId, &ride.DropReviewId,
-		&ride.RideReviewId, &ride.ParkingLocation, &ride.Otp, &ride.CreatedAt, &ride.UpdatedAt)
+	err := row.Scan(&ride.Id, &ride.BookingId, &ride.SiteId, &ride.RideStatus, &ride.CreatedBy, &ride.PickDriverId, &ride.DropDriverId, &ride.SupervisorId, &ride.PickReviewId, &ride.DropReviewId,
+		&ride.RideReviewId, &ride.ParkingLocation, &ride.ParkedCarImages, &ride.Otp, &ride.CreatedAt, &ride.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func CreateNewRideInTxn(ctx context.Context, db database.DBTX, bookingId, siteId
 
 func GetRideDetailsByID(ctx context.Context, db database.DBTX, rideId string, lock database.LockMode) (*models.Ride, error) {
 
-	query := `SELECT ` + rideColumns + `
+	query := `SELECT id, ` + rideColumns + `, created_at, updated_at
 			  FROM rides
 			  WHERE id = $1` + lock.Clause()
 	row := db.QueryRow(ctx, query, rideId)
@@ -57,7 +57,7 @@ func GetRideDetailsByID(ctx context.Context, db database.DBTX, rideId string, lo
 	return scanRide(row)
 }
 
-func StepUpRideInTxn(ctx context.Context, db database.DBTX, req dto.UpdateRideRequest) (*models.Ride, error) {
+func StepUpRideInTxn(ctx context.Context, db database.DBTX, req dto.UpdateRideRequest, driverId *string) (*models.Ride, error) {
 	var query string
 	var row pgx.Row
 
@@ -68,92 +68,92 @@ func StepUpRideInTxn(ctx context.Context, db database.DBTX, req dto.UpdateRideRe
 	switch req.PreviousStatus {
 	case constants.RIDE_STATUS_REQUESTED:
 		query = `UPDATE rides
-			  SET ride_status = ` + constants.RIDE_STATUS_PICK_ASSIGNED + `,
+			  SET ride_status = $3,
 			  pick_driver_id = COALESCE($2, pick_driver_id),
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
-		row = db.QueryRow(ctx, query, req.RideID, req.PickDriverId)
+		row = db.QueryRow(ctx, query, req.RideID, driverId, constants.RIDE_STATUS_PICK_ASSIGNED)
 
 	case constants.RIDE_STATUS_PICK_ASSIGNED:
 		query = `UPDATE rides
-			  SET ride_status = ` + constants.RIDE_STATUS_PICK_COMPLETED + `,
+			  SET ride_status = $2,
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
-		row = db.QueryRow(ctx, query, req.RideID)
+		row = db.QueryRow(ctx, query, req.RideID, constants.RIDE_STATUS_PICK_COMPLETED)
 
 	case constants.RIDE_STATUS_PICK_COMPLETED:
 		query = `UPDATE rides
-			  SET ride_status = ` + constants.RIDE_STATUS_PARKED + `,
+			  SET ride_status = $4,
 			  parking_location = COALESCE($2, parking_location),
 			  parked_car_images = COALESCE($3, parked_car_images),
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
-		row = db.QueryRow(ctx, query, req.RideID, req.ParkingLocation, req.ParkedCarImages)
+		row = db.QueryRow(ctx, query, req.RideID, req.ParkingLocation, req.ParkedCarImages, constants.RIDE_STATUS_PARKED)
 
 	case constants.RIDE_STATUS_PARKED:
 		query = `UPDATE rides
-			  SET ride_status = ` + constants.RIDE_STATUS_GMC_REQUESTED + `
+			  SET ride_status = $2,
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
-		row = db.QueryRow(ctx, query, req.RideID)
+		row = db.QueryRow(ctx, query, req.RideID, constants.RIDE_STATUS_GMC_REQUESTED)
 
 	case constants.RIDE_STATUS_GMC_REQUESTED:
 		query = `UPDATE rides
-			  SET ride_status = ` + constants.RIDE_STATUS_DROP_ASSIGNED + `,
+			  SET ride_status = $3,
 			  drop_driver_id = $2,
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
-		row = db.QueryRow(ctx, query, req.RideID, req.DropDriverId)
+		row = db.QueryRow(ctx, query, req.RideID, driverId, constants.RIDE_STATUS_DROP_ASSIGNED)
 
 	case constants.RIDE_STATUS_DROP_ASSIGNED:
 		query = `UPDATE rides
-			  SET ride_status = ` + constants.RIDE_STATUS_DROP_ENROUTE + `,
+			  SET ride_status = $2,
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
-		row = db.QueryRow(ctx, query, req.RideID)
+		row = db.QueryRow(ctx, query, req.RideID, constants.RIDE_STATUS_DROP_ENROUTE)
 
 	case constants.RIDE_STATUS_DROP_ENROUTE:
 		query = `UPDATE rides
-			  SET ride_status = ` + constants.RIDE_STATUS_DROP_COMPLETED + `,
+			  SET ride_status = $2,
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
-		row = db.QueryRow(ctx, query, req.RideID)
+		row = db.QueryRow(ctx, query, req.RideID, constants.RIDE_STATUS_DROP_COMPLETED)
 
 	case constants.RIDE_STATUS_DROP_COMPLETED:
 		query = `UPDATE rides
-			  SET ride_status = ` + constants.RIDE_STATUS_KEY_RETURNED + `,
+			  SET ride_status = $2,
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
-		row = db.QueryRow(ctx, query, req.RideID)
+		row = db.QueryRow(ctx, query, req.RideID, constants.RIDE_STATUS_KEY_RETURNED)
 
 	case constants.RIDE_STATUS_KEY_RETURNED:
 		query = `UPDATE rides
-			  SET ride_status = ` + constants.RIDE_STATUS_FEEDBACK + `,
+			  SET ride_status = $3,
 			  ride_review_id = $2,
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
-		row = db.QueryRow(ctx, query, req.RideID, req.RideReviewId)
+		row = db.QueryRow(ctx, query, req.RideID, req.RideReviewId, constants.RIDE_STATUS_FEEDBACK)
 	}
 	return scanRide(row)
 }
 
 func markRideAsCompleted(ctx context.Context, db database.DBTX, rideId string) (*models.Ride, error) {
 	query := `UPDATE rides
-			  SET ride_status = ` + constants.RIDE_STATUS_COMPLETED + `,
+			  SET ride_status = $2,
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
 
-	row := db.QueryRow(ctx, query, rideId)
+	row := db.QueryRow(ctx, query, rideId, constants.RIDE_STATUS_COMPLETED)
 	return scanRide(row)
 }
 
@@ -162,7 +162,7 @@ func AddRideHistoryInTxn(ctx context.Context, db database.DBTX, rideHistory *mod
 			  VALUES ($1, $2, $3, $4, $5, $6)
 			  RETURNING ` + rideHistoryColumns + `, created_at, updated_at`
 
-	row := db.QueryRow(ctx, query, rideHistory.RideId, rideHistory.PreviousStatus, rideHistory.NewStatus, rideHistory.ActorRole, rideHistory.DriverId)
+	row := db.QueryRow(ctx, query, rideHistory.RideId, rideHistory.PreviousStatus, rideHistory.NewStatus, rideHistory.ActorId, rideHistory.ActorRole, rideHistory.DriverId)
 	return scanRideHistory(row)
 }
 
@@ -172,7 +172,7 @@ func GetRideTimeline(pool *pgxpool.Pool, rideId string) ([]*models.RideHistory, 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := `SELECT ` + rideHistoryColumns + `
+	query := `SELECT ` + rideHistoryColumns + `, created_at, updated_at
 			  FROM ride_history
 			  WHERE ride_id = $1
 			  ORDER BY created_at`
