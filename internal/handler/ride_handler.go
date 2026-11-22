@@ -13,27 +13,26 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func CreateRideHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+func StartRideHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var err error
 		var currentUser = middleware.MustCurrentUser(ctx)
 
 		bookingId := ctx.Query("booking_id")
 		vrn := ctx.Query("vrn")
-		siteId := ctx.Query("site_id")
 
 		if vrn == "" {
 			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse("Please provide the vehicle number"))
 			return
 		}
 
-		err = CustomUtils.ValidateUUIDs(bookingId, siteId)
+		err = CustomUtils.ValidateUUIDs(bookingId)
 		if err != nil {
-			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse("Please provide a valid booking id and site id"))
+			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse("Please provide a valid booking id"))
 			return
 		}
 
-		ride, err := service.CreateRideService(ctx, pool, bookingId, vrn, currentUser)
+		ride, err := service.StartRideService(ctx, pool, bookingId, vrn, currentUser)
 		if err != nil {
 			CustomUtils.RespondRepoError(ctx, err)
 			return
@@ -54,7 +53,7 @@ func UpdateRideHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		err = req.Validate()
+		err = req.Validate(false)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(err.Error()))
 			return
@@ -82,7 +81,7 @@ func RequestGMCHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		err = req.Validate()
+		err = req.Validate(true)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(err.Error()))
 			return

@@ -8,10 +8,8 @@ import (
 type UpdateRideRequest struct {
 	RideID          string   `json:"ride_id" binding:"required"`
 	BookingId       string   `json:"booking_id" binding:"required"`
-	PreviousStatus  string   `json:"previous_status" binding:"required,oneof=REQUESTED PICK_ASSIGNED PICK_COMPLETED PARKED GMC_REQUESTED DROP_ASSIGNED DRIVER_ENROUTE DROP_COMPLETED KEY_RETURNED RIDE_FEEDBACK"`
-	PickDriverId    *string  `json:"pick_driver_id" binding:"omitempty"`
-	DropDriverId    *string  `json:"drop_driver_id" binding:"omitempty"`
-	SupervisorId    *string  `json:"supervisor_id" binding:"omitempty"`
+	PreviousStatus  string   `json:"previous_status" binding:"required,oneof=REQUESTED PICK_ASSIGNED PICK_COMPLETED PARKED GMC_REQUESTED DROP_ASSIGNED DROP_ENROUTE DROP_COMPLETED KEY_RETURNED RIDE_FEEDBACK"`
+	SupervisorId    *string  `json:"supervisor_id" binding:"omitempty"` // optional for driver, as key can be returned to supervisor or left at the desk
 	RideReviewId    *string  `json:"ride_review_id" binding:"omitempty"`
 	ParkingLocation *string  `json:"parking_location" binding:"omitempty"`
 	ParkedCarImages []string `json:"parked_car_images" binding:"omitempty,max=5,dive,url"`
@@ -23,16 +21,15 @@ type fieldRule struct {
 }
 
 var updateRideFields = []string{
-	"pick_driver_id", "drop_driver_id", "supervisor_id",
-	"ride_review_id", "parking_location", "parked_car_images",
+	"supervisor_id", "ride_review_id", "parking_location", "parked_car_images",
 }
 
 var updateRideRules = map[string]fieldRule{
-	constants.RIDE_STATUS_REQUESTED:      {required: []string{"pick_driver_id"}},
+	constants.RIDE_STATUS_REQUESTED:      {},
 	constants.RIDE_STATUS_PICK_ASSIGNED:  {},
 	constants.RIDE_STATUS_PICK_COMPLETED: {optional: []string{"parking_location", "parked_car_images"}},
 	constants.RIDE_STATUS_PARKED:         {},
-	constants.RIDE_STATUS_GMC_REQUESTED:  {required: []string{"drop_driver_id"}},
+	constants.RIDE_STATUS_GMC_REQUESTED:  {},
 	constants.RIDE_STATUS_DROP_ASSIGNED:  {},
 	constants.RIDE_STATUS_DROP_ENROUTE:   {},
 	constants.RIDE_STATUS_DROP_COMPLETED: {optional: []string{"supervisor_id"}},
@@ -42,8 +39,6 @@ var updateRideRules = map[string]fieldRule{
 
 func (r *UpdateRideRequest) sentFields() map[string]bool {
 	return map[string]bool{
-		"pick_driver_id":    r.PickDriverId != nil,
-		"drop_driver_id":    r.DropDriverId != nil,
 		"supervisor_id":     r.SupervisorId != nil,
 		"ride_review_id":    r.RideReviewId != nil,
 		"parking_location":  r.ParkingLocation != nil,
@@ -51,7 +46,10 @@ func (r *UpdateRideRequest) sentFields() map[string]bool {
 	}
 }
 
-func (r *UpdateRideRequest) Validate() error {
+func (r *UpdateRideRequest) Validate(requestGMCAllowed bool) error {
+	if r.PreviousStatus == constants.RIDE_STATUS_PARKED && !requestGMCAllowed {
+		return CustomUtils.Invalid("Please ask to customer/supervisor to request GMC")
+	}
 	rule, ok := updateRideRules[r.PreviousStatus]
 	if !ok {
 		return CustomUtils.Invalid("a ride with status " + r.PreviousStatus + " cannot be updated")

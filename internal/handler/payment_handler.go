@@ -11,7 +11,7 @@ import (
 
 func UpdatePaymentStatusHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		rideId := ctx.Query("ride_id")
+		rideId := ctx.Param("ride_id")
 
 		err := CustomUtils.ValidateUUIDs(rideId)
 		if err != nil {
