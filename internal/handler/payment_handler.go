@@ -11,17 +11,20 @@ import (
 
 func UpdatePaymentStatusHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		rideId := ctx.Param("ride_id")
+		rideId := ctx.Param("id")
 
 		err := CustomUtils.ValidateUUIDs(rideId)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, CustomUtils.HandleErrorResponse(err.Error()))
+			return
 		}
 
-		err = service.UpdatePaymentStatusService(ctx, pool, rideId)
+		booking, err := service.UpdatePaymentStatusService(ctx, pool, rideId)
 		if err != nil {
 			CustomUtils.RespondRepoError(ctx, err)
 			return
 		}
+
+		ctx.JSON(http.StatusAccepted, CustomUtils.HandleSuccessResponse(booking))
 	}
 }

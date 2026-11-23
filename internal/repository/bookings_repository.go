@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"agrawalManas/Valet/internal/constants"
 	"agrawalManas/Valet/internal/database"
 	"agrawalManas/Valet/internal/models"
 	"context"
@@ -23,10 +24,6 @@ func scanBooking(row pgx.Row) (*models.Booking, error) {
 		return nil, err
 	}
 	return &booking, nil
-}
-
-func GetBookingCountForASite(pool *pgxpool.Pool, siteId string, bookingDate time.Time) (int, error) {
-	return 0, nil
 }
 
 func GetBookingCountForASiteInTransaction(ctx context.Context, db database.DBTX, siteId string, bookingDate time.Time) (*int, error) {
@@ -92,4 +89,37 @@ func GetBookingByIdInTxn(ctx context.Context, db database.DBTX, bookingId string
 
 	row := db.QueryRow(ctx, query, bookingId)
 	return scanBooking(row)
+}
+
+func GetActiveBookingsForASite(pool *pgxpool.Pool, siteId string) ([]*models.Booking, error) {
+	var ctx context.Context
+	var cancel context.CancelFunc
+	var err error
+
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `SELECT id, ` + bookingColumns + `, total_amount, created_at, updated_at
+			  FROM bookings
+			  WHERE site_id = $1 AND status = $2`
+
+	var bookings []*models.Booking
+	rows, err := pool.Query(ctx, query, siteId, constants.BOOKING_STATUS_ACTIVE)
+	if err != nil || rows.Err() != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var booking *models.Booking
+
+		booking, err = scanBooking(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		bookings = append(bookings, booking)
+	}
+	return bookings, nil
 }

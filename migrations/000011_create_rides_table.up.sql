@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS ride_reviews (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ride_id UUID UNIQUE NOT NULL REFERENCES rides(id),
     reviewer_id UUID NOT NULL REFERENCES users(id),
     rating NUMERIC(2, 1) NOT NULL CHECK (rating >= 0 AND rating <= 5),
     review TEXT,

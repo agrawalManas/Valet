@@ -15,6 +15,17 @@ import (
 const rideColumns = `booking_id, site_id, ride_status, created_by, pick_driver_id, drop_driver_id, supervisor_id, pick_review_id, drop_review_id,
 					 ride_review_id, parking_location, parked_car_images, otp`
 const rideHistoryColumns = `ride_id, from_status, to_status, actor_id, actor_role, driver_id`
+const rideReviewColumns = `id, ride_id, reviewer_id, rating, review, created_at, updated_at`
+
+func scanRideReview(row pgx.Row) (*models.RideReview, error) {
+	var review models.RideReview
+
+	err := row.Scan(&review.Id, &review.RideId, &review.ReviewerId, &review.Rating, &review.Review, &review.CreatedAt, &review.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &review, nil
+}
 
 func scanRide(row pgx.Row) (*models.Ride, error) {
 	var ride models.Ride
@@ -137,7 +148,6 @@ func StepUpRideInTxn(ctx context.Context, db database.DBTX, req dto.UpdateRideRe
 	case constants.RIDE_STATUS_KEY_RETURNED:
 		query = `UPDATE rides
 			  SET ride_status = $3,
-			  ride_review_id = $2,
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
@@ -183,6 +193,7 @@ func GetRideTimeline(pool *pgxpool.Pool, rideId string) ([]*models.RideHistory, 
 	}
 
 	var timeline []*models.RideHistory
+	defer rows.Close()
 
 	for rows.Next() {
 		ride, err := scanRideHistory(rows)
@@ -192,6 +203,30 @@ func GetRideTimeline(pool *pgxpool.Pool, rideId string) ([]*models.RideHistory, 
 		timeline = append(timeline, ride)
 	}
 	return timeline, nil
+}
+
+func GetDriverRequestsInTxn(ctx context.Context, db database.DBTX, siteId, rideStatus string) ([]*models.Ride, error) {
+	query := `SELECT id` + rideColumns + `, created_at, updated_at
+			  FROM rides
+			  WHERE site_id = $1 AND ride_status = $2
+			  ORDER BY created_at`
+
+	rows, err := db.Query(ctx, query, siteId, rideStatus)
+	if err != nil {
+		return nil, err
+	}
+
+	var availableRides []*models.Ride
+	defer rows.Close()
+
+	for rows.Next() {
+		ride, err := scanRide(rows)
+		if err != nil {
+			return nil, err
+		}
+		availableRides = append(availableRides, ride)
+	}
+	return availableRides, nil
 }
 
 func GetSiteIDAgainstRideId(pool *pgxpool.Pool, rideId string) (*string, error) {
@@ -211,4 +246,13 @@ func GetSiteIDAgainstRideId(pool *pgxpool.Pool, rideId string) (*string, error) 
 	}
 
 	return &siteId, nil
+}
+
+func AddRideReviewInTx(ctx context.Context, db database.DBTX, rideId, reviewerId string, rating float32, review *string) (*models.RideReview, error) {
+	query := `INSERT into ride_reviews (reviewer_id, ride_id, rating, review)
+			  VALUES ($1, $2, $3, $4)
+			  RETURNING ` + rideReviewColumns
+	row := db.QueryRow(ctx, query, reviewerId, rideId, rating, review)
+
+	return scanRideReview(row)
 }

@@ -5,6 +5,19 @@ import (
 	CustomUtils "agrawalManas/Valet/pkg/utils"
 )
 
+type AddRideReviewDTO struct {
+	RideId string  `json:"ride_id" binding:"required"`
+	Rating float32 `json:"rating" binding:"required"`
+	Review *string `json:"review" binding:"review"`
+}
+
+func (r *AddRideReviewDTO) Validate() error {
+	if r.RideId == "" && r.Rating <= 0 && r.Review == nil {
+		return CustomUtils.Invalid("Please provide a ride id, rating and review(if any) ")
+	}
+	return nil
+}
+
 type UpdateRideRequest struct {
 	RideID          string   `json:"ride_id" binding:"required"`
 	BookingId       string   `json:"booking_id" binding:"required"`
@@ -46,13 +59,34 @@ func (r *UpdateRideRequest) sentFields() map[string]bool {
 	}
 }
 
-func (r *UpdateRideRequest) Validate(requestGMCAllowed bool) error {
-	if r.PreviousStatus == constants.RIDE_STATUS_PARKED && !requestGMCAllowed {
+func (r *UpdateRideRequest) Validate(requestGMCAllowed, allowPickDropRequest bool) error {
+	previousStatus := r.PreviousStatus
+	isPickOrDropRequest := previousStatus == constants.RIDE_STATUS_REQUESTED || previousStatus == constants.RIDE_STATUS_GMC_REQUESTED
+
+	if requestGMCAllowed && previousStatus != constants.RIDE_STATUS_PARKED {
+		return CustomUtils.Invalid("Given previous_status is not applicable for GMC Request")
+	}
+
+	if allowPickDropRequest && !isPickOrDropRequest {
+		return CustomUtils.Invalid("Given previous_status is not applicable for pick/drop request")
+	}
+
+	if isPickOrDropRequest && !allowPickDropRequest {
+		return CustomUtils.Invalid("Ride can only be moved forward once a driver accepts pick/drop request")
+	}
+
+	if previousStatus == constants.RIDE_STATUS_PARKED && !requestGMCAllowed {
 		return CustomUtils.Invalid("Please ask to customer/supervisor to request GMC")
 	}
-	rule, ok := updateRideRules[r.PreviousStatus]
+
+	err := CustomUtils.ValidateUUIDs(r.RideID, r.BookingId)
+	if err != nil {
+		return CustomUtils.Invalid("Please provide valid ride and booking id")
+	}
+
+	rule, ok := updateRideRules[previousStatus]
 	if !ok {
-		return CustomUtils.Invalid("a ride with status " + r.PreviousStatus + " cannot be updated")
+		return CustomUtils.Invalid("a ride with status " + previousStatus + " cannot be updated")
 	}
 
 	sent := r.sentFields()
@@ -61,7 +95,7 @@ func (r *UpdateRideRequest) Validate(requestGMCAllowed bool) error {
 	for _, f := range rule.required {
 		allowed[f] = true
 		if !sent[f] {
-			return CustomUtils.Invalid(f + " is required when the previous_status is " + r.PreviousStatus)
+			return CustomUtils.Invalid(f + " is required when the previous_status is " + previousStatus)
 		}
 	}
 	for _, f := range rule.optional {
@@ -70,7 +104,7 @@ func (r *UpdateRideRequest) Validate(requestGMCAllowed bool) error {
 
 	for _, f := range updateRideFields {
 		if sent[f] && !allowed[f] {
-			return CustomUtils.Invalid(f + " is not allowed when previous_status is " + r.PreviousStatus)
+			return CustomUtils.Invalid(f + " is not allowed when previous_status is " + previousStatus)
 		}
 	}
 	return nil

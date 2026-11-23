@@ -3,6 +3,7 @@ package service
 import (
 	"agrawalManas/Valet/internal/constants"
 	"agrawalManas/Valet/internal/database"
+	"agrawalManas/Valet/internal/models"
 	"agrawalManas/Valet/internal/repository"
 	CustomUtils "agrawalManas/Valet/pkg/utils"
 	"context"
@@ -17,10 +18,11 @@ import (
 // 1. get the ride details check the current ride_status and match the booking id
 // 2. get the booking details and check the booking_status and payment_status
 // 3. update the booking status, payment_status in bookings table
-func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, rideId string) error {
+func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, rideId string) (*models.Booking, error) {
 	var err error
+	var booking *models.Booking
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
 	err = pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
@@ -45,16 +47,16 @@ func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, rideId 
 
 		err = resolveBookingStatus(booking.Status)
 		if err != nil {
-			return CustomUtils.Invalid(err.Error())
+			return err
 		}
 
 		newPaymentStatus, err := resolvePaymentStatus(CustomUtils.Deref(booking.PaymentStatus))
-		if err != nil || newPaymentStatus != "" {
-			return CustomUtils.Invalid(err.Error())
+		if err != nil || newPaymentStatus == "" {
+			return err
 		}
 
 		// -----------Step 3
-		_, err = repository.UpdateBookingAndPaymentStatusInTxn(ctx, tx, ride.BookingId, &booking.Status, &newPaymentStatus)
+		booking, err = repository.UpdateBookingAndPaymentStatusInTxn(ctx, tx, ride.BookingId, &booking.Status, &newPaymentStatus)
 		if err != nil {
 			return err
 		}
@@ -62,10 +64,10 @@ func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, rideId 
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return booking, nil
 }
 
 func resolveRideStatus(rideStatus string) error {
@@ -85,6 +87,10 @@ func resolveBookingStatus(bookingStatus string) error {
 func resolvePaymentStatus(paymentStatus string) (string, error) {
 	if paymentStatus == constants.PAYMENT_STATUS_PENDING {
 		return constants.PAYMENT_STATUS_PAID, nil
+	}
+
+	if paymentStatus == constants.PAYMENT_STATUS_PAID {
+		return "", CustomUtils.Invalid("This booking has already been marked as PAID, cannot update further")
 	}
 	return "", CustomUtils.Invalid("Cannot update the payment status for this booking: " + paymentStatus + " to " + constants.PAYMENT_STATUS_PAID)
 }

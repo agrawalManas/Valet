@@ -5,6 +5,7 @@ import (
 	"agrawalManas/Valet/internal/dto"
 	"agrawalManas/Valet/internal/models"
 	"context"
+	"errors"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -266,4 +267,21 @@ func GetSiteBySiteId(pool *pgxpool.Pool, siteId string) (*models.Site, error) {
 
 	row := pool.QueryRow(ctx, query, siteId)
 	return scanSite(row)
+}
+
+func CheckSupervisorAgainstASiteInTxn(ctx context.Context, db database.DBTX, siteId, supervisorId string) (bool, error) {
+	var site models.Site
+
+	const query = `SELECT id, supervisor_id
+		FROM sites
+		WHERE id = $1 AND supervisor_id = $2`
+
+	err := db.QueryRow(ctx, query, siteId, supervisorId).Scan(&site.Id, &site.SupervisorId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

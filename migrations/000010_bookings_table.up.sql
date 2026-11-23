@@ -38,10 +38,10 @@ CREATE TABLE IF NOT EXISTS bookings (
     CONSTRAINT chk_bookings_amounts      CHECK (valet_amount >= 0 AND insurance_amount >= 0 AND taxes >= 0),
     CONSTRAINT chk_bookings_insurance    CHECK ((insurance_opted AND insurance_amount > 0)
                                              OR (NOT insurance_opted AND insurance_amount = 0)),
-    -- PREPAID needs a payment method and a real payment status. GMC has neither.
+    -- PREPAID needs a payment method and a real payment status.
     CONSTRAINT chk_bookings_payment      CHECK (
         (booking_type = 'PREPAID' AND payment_method IS NOT NULL AND payment_status <> 'NOT_REQUIRED')
-     OR (booking_type = 'GMC'     AND payment_method IS NULL     AND payment_status = 'PENDING')),
+     OR (booking_type = 'GMC'     AND payment_method IS NULL     AND payment_status IN ('PENDING', 'PAID', 'NOT_REQUIRED'))),
     CONSTRAINT chk_bookings_slot         CHECK (status <> 'SCHEDULED' OR slot_id IS NOT NULL),
     CONSTRAINT chk_bookings_cancelled    CHECK ((status = 'CANCELLED') = (cancelled_at IS NOT NULL))
 );
