@@ -80,18 +80,32 @@ func setupApiRoutes(router *gin.Engine, pool *pgxpool.Pool, cfg *config.Config, 
 	ridesApi.Use(middleware.AuthMiddleware(pool, cfg))
 
 	rideOperations := ridesApi.Group("")
-	rideOperations.Use(middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_DRIVER, constants.ROLE_SUPERVISOR))
+	rideOperations.Use(middleware.RequireRoles(constants.ROLE_DRIVER, constants.ROLE_SUPERVISOR))
 	{
 		rideOperations.POST("/start-ride", handler.StartRideHandler(pool))
-		rideOperations.POST("/request-gmc", handler.RequestGMCHandler(pool))
 		rideOperations.PATCH("/update-ride", handler.UpdateRideHandler(pool))
+	}
+
+	rideOperationsDriver := rideOperations.Group("")
+	rideOperationsDriver.Use(middleware.RequireRoles(constants.ROLE_DRIVER))
+	{
+		rideOperationsDriver.PATCH("/accept-pick-request", handler.AcceptPickDropRequestHandler(pool))
+		rideOperationsDriver.PATCH("/accept-drop-request", handler.AcceptPickDropRequestHandler(pool))
+		rideOperationsDriver.GET("/get-available-rides/:id", handler.GetDriverRidesHandler(pool))
 	}
 
 	rideManagement := ridesApi.Group("")
 	rideManagement.Use(middleware.RequireRoles(constants.ROLE_CUSTOMER, constants.ROLE_SUPERVISOR, constants.ROLE_ADMIN))
 	{
 		rideManagement.GET("/get-ride-timeline/:id", handler.RideTimelineHandler(pool))
-		rideManagement.POST("/update-payment-status", handler.UpdatePaymentStatusHandler(pool))
+		rideManagement.POST("/request-gmc", handler.RequestGMCHandler(pool))
+		rideManagement.PATCH("/update-payment-status/:id", handler.UpdatePaymentStatusHandler(pool))
+	}
+
+	rideOperationsCustomer := ridesApi.Group("")
+	rideOperationsCustomer.Use(middleware.RequireRoles(constants.ROLE_CUSTOMER))
+	{
+		rideOperationsCustomer.POST("/ride-feedback", handler.AddRideFeedbackHandler(pool))
 	}
 	// customerSupervisorCommonApi := router.Group("api/review")
 	// customerSupervisorCommonApi.Use(middleware.AuthMiddleware(pool, cfg), middleware.RequireRoles(constants.ROLE_SUPERVISOR, constants.ROLE_CUSTOMER))

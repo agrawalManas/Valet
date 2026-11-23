@@ -171,12 +171,13 @@ func UpdateCurrentDriverSupervisorInTxn(ctx context.Context, db database.DBTX, d
 
 func CheckDriverAgainstSiteIdInTx(ctx context.Context, db database.DBTX, driverId, siteId string) (bool, error) {
 	var driver models.Driver
+	var err error
 
 	const query = `SELECT id, site_id
 		FROM drivers
 		WHERE id = $1 AND site_id = $2`
 
-	err := db.QueryRow(ctx, query, driverId, siteId).Scan(&driver.Id, &driver.SiteId)
+	err = db.QueryRow(ctx, query, driverId, siteId).Scan(&driver.Id, &driver.SiteId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil
@@ -184,4 +185,13 @@ func CheckDriverAgainstSiteIdInTx(ctx context.Context, db database.DBTX, driverI
 		return false, err
 	}
 	return true, nil
+}
+
+func GetDriverForSite(ctx context.Context, pool *pgxpool.Pool, driverId, siteId string) (driver *models.Driver, err error) {
+	const query = `SELECT ` + driverColumns + `
+		FROM drivers
+		WHERE id = $1 AND site_id = $2`
+
+	row := pool.QueryRow(ctx, query, driverId, siteId)
+	return scanDriver(row, false)
 }

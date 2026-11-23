@@ -23,6 +23,7 @@ type Ride struct {
 
 type RideReview struct {
 	Id         string    `json:"id"`
+	RideId     string    `json:"ride_id"`
 	ReviewerId string    `json:"reviewer_id"`
 	Rating     float32   `json:"rating"`
 	Review     string    `json:"review"`
