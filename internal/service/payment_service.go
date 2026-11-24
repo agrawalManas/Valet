@@ -20,7 +20,7 @@ import (
 // 3. update the booking status, payment_status in bookings table
 func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, rideId string) (*models.Booking, error) {
 	var err error
-	var booking *models.Booking
+	var updatedBooking *models.Booking
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
@@ -56,7 +56,7 @@ func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, rideId 
 		}
 
 		// -----------Step 3
-		booking, err = repository.UpdateBookingAndPaymentStatusInTxn(ctx, tx, ride.BookingId, &booking.Status, &newPaymentStatus)
+		updatedBooking, err = repository.UpdateBookingAndPaymentStatusInTxn(ctx, tx, ride.BookingId, &booking.Status, &newPaymentStatus)
 		if err != nil {
 			return err
 		}
@@ -67,7 +67,7 @@ func UpdatePaymentStatusService(ctx context.Context, pool *pgxpool.Pool, rideId 
 		return nil, err
 	}
 
-	return booking, nil
+	return updatedBooking, nil
 }
 
 func resolveRideStatus(rideStatus string) error {

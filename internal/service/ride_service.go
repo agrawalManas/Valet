@@ -339,6 +339,7 @@ func RequestGMCService(pool *pgxpool.Pool, req dto.UpdateRideRequest, currentUse
 // 2. create a new entry in ride_reviews table
 // 3. update the ride_status for this ride to COMPLETED
 // 4. add a new entry in ride_history table with the updated status
+// 5. mark booking as completed, if not already
 func AddRideReview(pool *pgxpool.Pool, req dto.AddRideReviewDTO, currentUser middleware.AuthUser) (rideReview *models.RideReview, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
@@ -365,7 +366,7 @@ func AddRideReview(pool *pgxpool.Pool, req dto.AddRideReviewDTO, currentUser mid
 		req := dto.UpdateRideRequest{
 			RideID:         ride.Id,
 			BookingId:      ride.BookingId,
-			PreviousStatus: constants.RIDE_STATUS_FEEDBACK,
+			PreviousStatus: constants.RIDE_STATUS_KEY_RETURNED,
 			RideReviewId:   &rideReview.Id,
 		}
 
@@ -375,7 +376,7 @@ func AddRideReview(pool *pgxpool.Pool, req dto.AddRideReviewDTO, currentUser mid
 		}
 
 		// -------------Step 4
-		r := buildRideHistoryReq(updatedRide.Id, CustomUtils.GetPtr(constants.RIDE_STATUS_FEEDBACK), constants.RIDE_STATUS_COMPLETED, &currentUser.ID, &currentUser.Role, nil)
+		r := buildRideHistoryReq(updatedRide.Id, CustomUtils.GetPtr(constants.RIDE_STATUS_KEY_RETURNED), constants.RIDE_STATUS_COMPLETED, &currentUser.ID, &currentUser.Role, nil)
 		_, err = repository.AddRideHistoryInTxn(ctx, tx, r)
 		if err != nil {
 			return err
@@ -388,9 +389,10 @@ func AddRideReview(pool *pgxpool.Pool, req dto.AddRideReviewDTO, currentUser mid
 }
 
 func resolveRideStatusForFeedback(currentStatus string) error {
-	if currentStatus == constants.RIDE_STATUS_FEEDBACK {
+	switch currentStatus {
+	case constants.RIDE_STATUS_KEY_RETURNED:
 		return nil
-	} else if currentStatus == constants.RIDE_STATUS_COMPLETED {
+	case constants.RIDE_STATUS_COMPLETED:
 		return CustomUtils.Invalid("This ride has already been completed cannot add a feedback")
 	}
 	return CustomUtils.Invalid("Cannot add feedback when the current status is: " + currentStatus)
