@@ -72,10 +72,6 @@ func StepUpRideInTxn(ctx context.Context, db database.DBTX, req dto.UpdateRideRe
 	var query string
 	var row pgx.Row
 
-	if req.PreviousStatus == constants.RIDE_STATUS_FEEDBACK {
-		return markRideAsCompleted(ctx, db, req.RideID)
-	}
-
 	switch req.PreviousStatus {
 	case constants.RIDE_STATUS_REQUESTED:
 		query = `UPDATE rides
@@ -148,22 +144,12 @@ func StepUpRideInTxn(ctx context.Context, db database.DBTX, req dto.UpdateRideRe
 	case constants.RIDE_STATUS_KEY_RETURNED:
 		query = `UPDATE rides
 			  SET ride_status = $3,
+			  ride_review_id = $2,
 			  updated_at = CURRENT_TIMESTAMP
 			  WHERE id = $1
 			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
-		row = db.QueryRow(ctx, query, req.RideID, req.RideReviewId, constants.RIDE_STATUS_FEEDBACK)
+		row = db.QueryRow(ctx, query, req.RideID, req.RideReviewId, constants.RIDE_STATUS_COMPLETED)
 	}
-	return scanRide(row)
-}
-
-func markRideAsCompleted(ctx context.Context, db database.DBTX, rideId string) (*models.Ride, error) {
-	query := `UPDATE rides
-			  SET ride_status = $2,
-			  updated_at = CURRENT_TIMESTAMP
-			  WHERE id = $1
-			  RETURNING id, ` + rideColumns + `, created_at, updated_at`
-
-	row := db.QueryRow(ctx, query, rideId, constants.RIDE_STATUS_COMPLETED)
 	return scanRide(row)
 }
 

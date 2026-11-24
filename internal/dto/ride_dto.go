@@ -8,7 +8,7 @@ import (
 type AddRideReviewDTO struct {
 	RideId string  `json:"ride_id" binding:"required"`
 	Rating float32 `json:"rating" binding:"required"`
-	Review *string `json:"review" binding:"review"`
+	Review *string `json:"review" binding:"omitempty"`
 }
 
 func (r *AddRideReviewDTO) Validate() error {
@@ -21,7 +21,7 @@ func (r *AddRideReviewDTO) Validate() error {
 type UpdateRideRequest struct {
 	RideID          string   `json:"ride_id" binding:"required"`
 	BookingId       string   `json:"booking_id" binding:"required"`
-	PreviousStatus  string   `json:"previous_status" binding:"required,oneof=REQUESTED PICK_ASSIGNED PICK_COMPLETED PARKED GMC_REQUESTED DROP_ASSIGNED DROP_ENROUTE DROP_COMPLETED KEY_RETURNED RIDE_FEEDBACK"`
+	PreviousStatus  string   `json:"previous_status" binding:"required,oneof=REQUESTED PICK_ASSIGNED PICK_COMPLETED PARKED GMC_REQUESTED DROP_ASSIGNED DROP_ENROUTE DROP_COMPLETED"`
 	SupervisorId    *string  `json:"supervisor_id" binding:"omitempty"` // optional for driver, as key can be returned to supervisor or left at the desk
 	RideReviewId    *string  `json:"ride_review_id" binding:"omitempty"`
 	ParkingLocation *string  `json:"parking_location" binding:"omitempty"`
@@ -46,8 +46,6 @@ var updateRideRules = map[string]fieldRule{
 	constants.RIDE_STATUS_DROP_ASSIGNED:  {},
 	constants.RIDE_STATUS_DROP_ENROUTE:   {},
 	constants.RIDE_STATUS_DROP_COMPLETED: {optional: []string{"supervisor_id"}},
-	constants.RIDE_STATUS_KEY_RETURNED:   {},
-	constants.RIDE_STATUS_FEEDBACK:       {optional: []string{"ride_review_id"}},
 }
 
 func (r *UpdateRideRequest) sentFields() map[string]bool {
